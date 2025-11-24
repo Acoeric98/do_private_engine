@@ -1,4 +1,6 @@
-﻿using Ow.Game.Events;
+//TODO ide belerakni egy punkció hívást majd a Battle Royal kapuhoz
+
+using Ow.Game.Events;
 using Ow.Game.Objects;
 using Ow.Game.Movements;
 using Ow.Managers;
