@@ -1,0 +1,16 @@
+(Tank hajó képességek)
+
+Link (Damage Share)
+Leírás: Egy időben csak 1 link lehet aktív.
+Mechanika:
+A link X másodpercre összeköt két hajót (szövetséges vagy ellenséges).
+A sebzés 50-50 arányban oszlik meg a két hajó között.
+Cooldown: közepes/hosszú, hogy ne lehessen spam-elni.
+Taktikai hatás:
+A tankot támadó lövések egy részét a linkelt hajó “átveszi”.
+Ha a link megszakad vagy a CD miatt nincs aktív → a tank sebezhetővé válik.
+
+A többi képesség:
+Damage Absorption – a tank és a linkelt hajó csak 20%-ot kap a sebzésből.
+Guardian Axis – frontális páncél és a tank mögötti hajók részleges védelme.
+Gravity Anchor – lassítja a környező hajókat 70%-al
