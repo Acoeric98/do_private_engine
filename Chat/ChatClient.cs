@@ -382,6 +382,13 @@ namespace Ow.Chat
 
                 gameSession.Player?.Jump(player.Spacemap.Id, player.Position);
             }
+            else if (cmd == "/pos" && Permission == Permissions.ADMINISTRATOR)
+            {
+                var position = gameSession.Player.Position;
+                var mapId = gameSession.Player.Spacemap.Id;
+
+                Send($"dq%Your current position is X: {position.X}, Y: {position.Y} on map {mapId}.#");
+            }
             else if (cmd == "/pull" && Permission == Permissions.ADMINISTRATOR)
             {
                 if (message.Split(' ').Length < 3) return;
