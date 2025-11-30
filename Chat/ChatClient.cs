@@ -470,6 +470,7 @@ namespace Ow.Chat
                 gameSession.Player.Equipment.Configs.Config2Hitpoints += hitpoints;
                 gameSession.Player.Heal(hitpoints);
                 gameSession.Player.UpdateStatus();
+                gameSession.Player.Heal(hitpoints);
             }
             else if (cmd == "/shield+" && Permission == Permissions.ADMINISTRATOR)
             {
@@ -480,6 +481,7 @@ namespace Ow.Chat
                 gameSession.Player.Equipment.Configs.Config2Shield += shield;
                 gameSession.Player.Heal(shield, gameSession.Player.Id, HealType.SHIELD);
                 gameSession.Player.UpdateStatus();
+                gameSession.Player.Heal(shield, gameSession.Player.Id, HealType.SHIELD);
             }
             else if (cmd == "/god" && Permission == Permissions.ADMINISTRATOR)
             {
