@@ -461,6 +461,20 @@ namespace Ow.Chat
                 var damage = Convert.ToInt32(message.Split(' ')[1]);
                 gameSession.Player.Storage.DamageBoost = damage;
             }
+            else if (cmd == "/hp+" && Permission == Permissions.ADMINISTRATOR)
+            {
+                if (message.Split(' ').Length < 2) return;
+
+                var hitpoints = Convert.ToInt32(message.Split(' ')[1]);
+                gameSession.Player.Heal(hitpoints);
+            }
+            else if (cmd == "/shield+" && Permission == Permissions.ADMINISTRATOR)
+            {
+                if (message.Split(' ').Length < 2) return;
+
+                var shield = Convert.ToInt32(message.Split(' ')[1]);
+                gameSession.Player.Heal(shield, gameSession.Player.Id, HealType.SHIELD);
+            }
             else if (cmd == "/god" && Permission == Permissions.ADMINISTRATOR)
             {
                 if (message.Split(' ').Length < 2) return;
