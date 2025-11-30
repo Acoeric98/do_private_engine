@@ -629,7 +629,7 @@ namespace Ow.Chat
                     }
                 }
             }
-            /*
+            
             else if (cmd == "/reward" && Permission == Permissions.ADMINISTRATOR)
             {
                 if (message.Split(' ').Length < 4) return;
@@ -666,7 +666,7 @@ namespace Ow.Chat
                     GameManager.ChatClients[player.Id].Send($"dq%You got {amount} {rewardName} from {gameSession.Player.Name}.#");
                 }
             }
-            */
+            
             else
             {
                 if (!cmd.StartsWith("/"))
