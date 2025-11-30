@@ -466,6 +466,10 @@ namespace Ow.Chat
                 if (message.Split(' ').Length < 2) return;
 
                 var hitpoints = Convert.ToInt32(message.Split(' ')[1]);
+                gameSession.Player.Equipment.Configs.Config1Hitpoints += hitpoints;
+                gameSession.Player.Equipment.Configs.Config2Hitpoints += hitpoints;
+                gameSession.Player.Heal(hitpoints);
+                gameSession.Player.UpdateStatus();
                 gameSession.Player.Heal(hitpoints);
             }
             else if (cmd == "/shield+" && Permission == Permissions.ADMINISTRATOR)
@@ -473,6 +477,10 @@ namespace Ow.Chat
                 if (message.Split(' ').Length < 2) return;
 
                 var shield = Convert.ToInt32(message.Split(' ')[1]);
+                gameSession.Player.Equipment.Configs.Config1Shield += shield;
+                gameSession.Player.Equipment.Configs.Config2Shield += shield;
+                gameSession.Player.Heal(shield, gameSession.Player.Id, HealType.SHIELD);
+                gameSession.Player.UpdateStatus();
                 gameSession.Player.Heal(shield, gameSession.Player.Id, HealType.SHIELD);
             }
             else if (cmd == "/god" && Permission == Permissions.ADMINISTRATOR)
