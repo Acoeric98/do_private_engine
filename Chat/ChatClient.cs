@@ -340,6 +340,35 @@ namespace Ow.Chat
 
                 gameSession.Player.ChangeShip(shipId);
             }
+            else if (cmd == "/spawn" && Permission == Permissions.ADMINISTRATOR)
+            {
+                if (message.Split(' ').Length < 5) return;
+
+                var shipId = Convert.ToInt32(message.Split(' ')[1]);
+                var mapId = Convert.ToInt32(message.Split(' ')[2]);
+                var x = Convert.ToInt32(message.Split(' ')[3]);
+                var y = Convert.ToInt32(message.Split(' ')[4]);
+
+                var spacemap = GameManager.GetSpacemap(mapId);
+                var ship = GameManager.GetShip(shipId);
+
+                if (ship == null)
+                {
+                    Send($"dq%The npc with entered id doesn't exist in database.#");
+                    return;
+                }
+
+                if (spacemap == null)
+                {
+                    Send($"dq%The map that with entered doesn't exists.#");
+                    return;
+                }
+
+                var position = new Position(x, y);
+                new Npc(Randoms.CreateRandomID(), ship, spacemap, position);
+
+                Send($"dq%Npc spawned on map {mapId} at X: {x}, Y: {y}.#");
+            }
             else if (cmd == "/jump" && Permission == Permissions.ADMINISTRATOR)
             {
                 if (message.Split(' ').Length < 2) return;
