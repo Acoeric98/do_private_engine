@@ -347,6 +347,50 @@ namespace Ow.Chat
                 var mapId = Convert.ToInt32(message.Split(' ')[1]);
                 gameSession.Player.Jump(mapId, new Position(0, 0));
             }
+            else if (cmd == "/tp" && Permission == Permissions.ADMINISTRATOR)
+            {
+                if (message.Split(' ').Length < 4) return;
+
+                var mapId = Convert.ToInt32(message.Split(' ')[1]);
+                var x = Convert.ToInt32(message.Split(' ')[2]);
+                var y = Convert.ToInt32(message.Split(' ')[3]);
+
+                var map = GameManager.GetSpacemap(mapId);
+
+                if (map == null)
+                {
+                    Send($"dq%The map that with entered doesn't exists.#");
+                    return;
+                }
+
+                gameSession.Player.Jump(map.Id, new Position(x, y));
+            }
+            else if (cmd == "/ptp" && Permission == Permissions.ADMINISTRATOR)
+            {
+                if (message.Split(' ').Length < 5) return;
+
+                var userId = Convert.ToInt32(message.Split(' ')[1]);
+                var mapId = Convert.ToInt32(message.Split(' ')[2]);
+                var x = Convert.ToInt32(message.Split(' ')[3]);
+                var y = Convert.ToInt32(message.Split(' ')[4]);
+
+                var player = GameManager.GetPlayerById(userId);
+                var map = GameManager.GetSpacemap(mapId);
+
+                if (player == null)
+                {
+                    Send($"{ChatConstants.CMD_USER_NOT_EXIST}%#");
+                    return;
+                }
+
+                if (map == null)
+                {
+                    Send($"dq%The map that with entered doesn't exists.#");
+                    return;
+                }
+
+                player.Jump(map.Id, new Position(x, y));
+            }
             else if (cmd == "/move" && Permission == Permissions.ADMINISTRATOR)
             {
                 if (message.Split(' ').Length < 3) return;
