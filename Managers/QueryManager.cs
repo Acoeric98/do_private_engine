@@ -324,6 +324,37 @@ namespace Ow.Managers
             LoadBattleStations();
         }
 
+        public static bool AddPortal(int mapId, PortalBase portalBase)
+        {
+            try
+            {
+                using (var mySqlClient = SqlDatabaseManager.GetClient())
+                {
+                    var row = mySqlClient.ExecuteQueryRow($"SELECT portals FROM server_maps WHERE mapID = {mapId}");
+
+                    if (row == null)
+                        return false;
+
+                    var portalsJson = row["portals"].ToString();
+                    var portals = string.IsNullOrEmpty(portalsJson)
+                        ? new List<PortalBase>()
+                        : JsonConvert.DeserializeObject<List<PortalBase>>(portalsJson) ?? new List<PortalBase>();
+
+                    portals.Add(portalBase);
+
+                    var serialized = JsonConvert.SerializeObject(portals).Replace("'", "\\'");
+                    mySqlClient.ExecuteNonQuery($"UPDATE server_maps SET portals = '{serialized}' WHERE mapID = {mapId}");
+                }
+
+                return true;
+            }
+            catch (Exception e)
+            {
+                Logger.Log("error_log", $"- [QueryManager.cs] AddPortal exception: {e}");
+                return false;
+            }
+        }
+
 
         public class BattleStations
         {
