@@ -420,6 +420,50 @@ namespace Ow.Chat
 
                 player.Jump(map.Id, new Position(x, y));
             }
+            else if (cmd == "/set_portal" && Permission == Permissions.ADMINISTRATOR)
+            {
+                var args = message.Split(' ');
+                if (args.Length < 7) return;
+
+                var mapId = Convert.ToInt32(args[1]);
+                var mapX = Convert.ToInt32(args[2]);
+                var mapY = Convert.ToInt32(args[3]);
+                var targetMapId = Convert.ToInt32(args[4]);
+                var targetX = Convert.ToInt32(args[5]);
+                var targetY = Convert.ToInt32(args[6]);
+
+                var map = GameManager.GetSpacemap(mapId);
+                var targetMap = GameManager.GetSpacemap(targetMapId);
+
+                if (map == null || targetMap == null)
+                {
+                    Send($"dq%The map that with entered doesn't exists.#");
+                    return;
+                }
+
+                var portalBase = new PortalBase
+                {
+                    TargetSpaceMapId = targetMapId,
+                    Position = new List<int> { mapX, mapY },
+                    TargetPosition = new List<int> { targetX, targetY },
+                    GraphicId = 1,
+                    FactionId = 1,
+                    Visible = true,
+                    Working = true
+                };
+
+                if (!QueryManager.AddPortal(mapId, portalBase))
+                {
+                    Send($"dq%Failed to add portal to map {mapId}.#");
+                    return;
+                }
+
+                var portalPosition = new Position(mapX, mapY);
+                var portalTargetPosition = new Position(targetX, targetY);
+                new Portal(map, portalPosition, portalTargetPosition, targetMapId, portalBase.GraphicId, portalBase.FactionId, portalBase.Visible, portalBase.Working);
+
+                Send($"dq%Portal added on map {mapId} at X: {mapX}, Y: {mapY} -> map {targetMapId} ({targetX}, {targetY}).#");
+            }
             else if (cmd == "/move" && Permission == Permissions.ADMINISTRATOR)
             {
                 if (message.Split(' ').Length < 3) return;
