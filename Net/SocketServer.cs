@@ -31,8 +31,8 @@ class SocketServer
     public static int Port = 4301;
 
     public static void StartListening()
-    {  
-        IPEndPoint localEndPoint = new IPEndPoint(IPAddress.Any, Port);
+    {
+        var localEndPoint = new IPEndPoint(ServerSettings.ResolveBindAddress(), Port);
 
         Socket listener = new Socket(AddressFamily.InterNetwork,
             SocketType.Stream, ProtocolType.Tcp);
