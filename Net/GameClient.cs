@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
 using System.Linq;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
@@ -23,6 +24,7 @@ namespace Ow.Net
         {
             Socket = handler;
 
+            Out.WriteLine($"Client connected from {handler.RemoteEndPoint}", "GameClient");
             StateObject state = new StateObject();
             state.workSocket = handler;
             handler.BeginReceive(state.buffer, 0, StateObject.BufferSize, 0,
@@ -33,13 +35,21 @@ namespace Ow.Net
         {
             var gameSession = GameManager.GetGameSession(UserId);
             if (gameSession != null)
+            {
+                Out.WriteLine($"Disconnecting user {gameSession.Player.Name} (ID: {gameSession.Player.Id}) from {Socket?.RemoteEndPoint}", "GameClient");
                 gameSession.Disconnect(GameSession.DisconnectionType.SOCKET_CLOSED);
+            }
+            else
+            {
+                Out.WriteLine($"Closing connection for unknown user from {Socket?.RemoteEndPoint}", "GameClient");
+            }
         }
 
         public void Close()
         {
             try
             {
+                Out.WriteLine($"Closing socket for {Socket?.RemoteEndPoint}", "GameClient");
                 Socket.Shutdown(SocketShutdown.Both);
                 Socket.Close();
 
@@ -47,8 +57,7 @@ namespace Ow.Net
             }
             catch (Exception e)
             {
-                //ignored
-                //Logger.Log("error_log", $"- [GameClient.cs] Close void exception: {e}");
+                Out.WriteLine($"Failed to close socket for {Socket?.RemoteEndPoint}: {e.Message}", "GameClient", ConsoleColor.Red);
             }
         }
 
@@ -93,11 +102,13 @@ namespace Ow.Net
                 }
                 else
                 {
+                    Out.WriteLine($"Remote endpoint {Socket?.RemoteEndPoint} closed the connection", "GameClient");
                     Close();
                 }
-            } 
-            catch
+            }
+            catch (Exception e)
             {
+                Out.WriteLine($"Error while reading from {Socket?.RemoteEndPoint}: {e.Message}", "GameClient", ConsoleColor.Red);
                 Close();
             }
         }
@@ -144,7 +155,7 @@ namespace Ow.Net
             }
             catch (Exception e)
             {
-                //Logger.Log("error_log", $"- [GameClient.cs] SendCallback void exception: {e}");
+                Out.WriteLine($"Error sending data to client: {e.Message}", "GameClient", ConsoleColor.Red);
             }
         }
     }

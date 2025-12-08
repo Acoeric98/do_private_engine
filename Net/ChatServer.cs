@@ -58,8 +58,9 @@ namespace Ow.Net
                 Socket listener = (Socket)ar.AsyncState;
                 Socket handler = listener.EndAccept(ar);
 
+                Out.WriteLine($"Accepted client from {handler.RemoteEndPoint}", "ChatServer");
                 new ChatClient(handler);
-            } 
+            }
             catch (Exception e)
             {
                 Logger.Log("error_log", $"- [ChatServer.cs] AcceptCallback void exception: {e}");
