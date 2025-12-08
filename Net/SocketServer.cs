@@ -35,8 +35,7 @@ class SocketServer
         var bindAddress = ServerSettings.ResolveBindAddress();
         var localEndPoint = new IPEndPoint(bindAddress, Port);
 
-        Socket listener = new Socket(AddressFamily.InterNetwork,
-            SocketType.Stream, ProtocolType.Tcp);
+        Socket listener = ServerSettings.CreateTcpSocket(bindAddress);
 
         try
         {

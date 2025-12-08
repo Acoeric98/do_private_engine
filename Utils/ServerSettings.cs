@@ -1,6 +1,7 @@
 using System;
 using System.Configuration;
 using System.Net;
+using System.Net.Sockets;
 
 namespace Ow.Utils
 {
@@ -30,6 +31,21 @@ namespace Ow.Utils
 
             Out.WriteLine($"Invalid BindAddress '{configured}', falling back to 0.0.0.0", "ServerSettings");
             return IPAddress.Any;
+        }
+
+        public static Socket CreateTcpSocket(IPAddress bindAddress)
+        {
+            if (bindAddress.AddressFamily == AddressFamily.InterNetworkV6)
+            {
+                var socket = new Socket(AddressFamily.InterNetworkV6, SocketType.Stream, ProtocolType.Tcp)
+                {
+                    DualMode = true
+                };
+
+                return socket;
+            }
+
+            return new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
         }
     }
 }
