@@ -17,7 +17,8 @@ namespace Ow.Net
 {
     class GameClient
     {
-        private const int MaxEmptyOrPollRetries = 5;
+        private const int MaxEmptyOrPollRetries = 100;
+        private const int PollWaitMicroseconds = 500000;
         public Socket Socket { get; set; }
         public int UserId { get; set; }
 
@@ -148,7 +149,7 @@ namespace Ow.Net
         {
             try
             {
-                return handler != null && handler.IsBound && handler.Connected && !(handler.Poll(1, SelectMode.SelectRead) && handler.Available == 0);
+                return handler != null && handler.IsBound && handler.Connected && !(handler.Poll(PollWaitMicroseconds, SelectMode.SelectRead) && handler.Available == 0);
             }
             catch
             {
