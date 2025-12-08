@@ -96,6 +96,8 @@ namespace Ow.Net.netty.handlers
 
                 QueryManager.SavePlayer.Information(Player);
                 Console.Title = $"DarkOrbit | {GameManager.GameSessions.Count} users online";
+
+                Out.WriteLine($"User {Player.Name} (ID: {Player.Id}) logged in from {GameSession.Client.Socket?.RemoteEndPoint}", "LoginRequest");
             }
             catch (Exception e)
             {

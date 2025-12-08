@@ -57,8 +57,9 @@ namespace Ow.Net
                 Socket listener = (Socket)ar.AsyncState;
                 Socket handler = listener.EndAccept(ar);
 
+                Out.WriteLine($"Accepted client from {handler.RemoteEndPoint}", "GameServer");
                 new GameClient(handler);
-            } 
+            }
             catch (Exception e)
             {
                 Logger.Log("error_log", $"- [GameServer.cs] AcceptCallback void exception: {e}");
