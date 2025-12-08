@@ -198,7 +198,8 @@ class SocketServer
             }
             else
             {
-                Out.WriteLine($"Remote endpoint {handler?.RemoteEndPoint} closed the socket connection", "SocketServer");
+                var stillConnected = IsSocketConnected(handler);
+                Out.WriteLine($"Remote endpoint {handler?.RemoteEndPoint} closed the socket connection (Connected flag: {handler?.Connected}, Poll check: {stillConnected})", "SocketServer");
                 Close(handler, "Remote endpoint closed the socket connection");
             }
         }
@@ -219,6 +220,18 @@ class SocketServer
             handler.Close();
         }
         catch { }
+    }
+
+    private static bool IsSocketConnected(Socket handler)
+    {
+        try
+        {
+            return handler != null && !(handler.Poll(1, SelectMode.SelectRead) && handler.Available == 0);
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     private static void Send(Socket handler, String data)
