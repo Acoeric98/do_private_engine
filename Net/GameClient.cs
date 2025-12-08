@@ -17,6 +17,7 @@ namespace Ow.Net
 {
     class GameClient
     {
+        private const int MaxEmptyOrPollRetries = 5;
         public Socket Socket { get; set; }
         public int UserId { get; set; }
 
@@ -79,6 +80,9 @@ namespace Ow.Net
 
                 if (bytesRead > 0)
                 {
+                    state.EmptyReadAttempts = 0;
+                    state.PollFailureAttempts = 0;
+
                     content = Encoding.UTF8.GetString(
                         state.buffer, 0, bytesRead);
 
@@ -102,14 +106,53 @@ namespace Ow.Net
                 }
                 else
                 {
-                    Out.WriteLine($"Remote endpoint {Socket?.RemoteEndPoint} closed the connection", "GameClient");
-                    Close();
+                    if (!IsSocketResponsive(handler))
+                    {
+                        state.PollFailureAttempts++;
+
+                        if (state.PollFailureAttempts >= MaxEmptyOrPollRetries)
+                        {
+                            Out.WriteLine($"Remote endpoint {Socket?.RemoteEndPoint} closed the connection after {state.PollFailureAttempts} failed polls", "GameClient");
+                            Close();
+                            return;
+                        }
+
+                        Out.WriteLine($"Poll failure detected for {Socket?.RemoteEndPoint}; retrying {state.PollFailureAttempts}/{MaxEmptyOrPollRetries}", "GameClient");
+                    }
+                    else
+                    {
+                        state.EmptyReadAttempts++;
+
+                        if (state.EmptyReadAttempts >= MaxEmptyOrPollRetries)
+                        {
+                            Out.WriteLine($"No data received from {Socket?.RemoteEndPoint} after {state.EmptyReadAttempts} attempts; closing connection", "GameClient");
+                            Close();
+                            return;
+                        }
+
+                        Out.WriteLine($"Received empty payload from {Socket?.RemoteEndPoint}; retrying {state.EmptyReadAttempts}/{MaxEmptyOrPollRetries}", "GameClient");
+                    }
+
+                    handler.BeginReceive(state.buffer, 0, StateObject.BufferSize, 0,
+                        new AsyncCallback(ReadCallback), state);
                 }
             }
             catch (Exception e)
             {
                 Out.WriteLine($"Error while reading from {Socket?.RemoteEndPoint}: {e.Message}", "GameClient", ConsoleColor.Red);
                 Close();
+            }
+        }
+
+        private static bool IsSocketResponsive(Socket handler)
+        {
+            try
+            {
+                return handler != null && handler.IsBound && handler.Connected && !(handler.Poll(1, SelectMode.SelectRead) && handler.Available == 0);
+            }
+            catch
+            {
+                return false;
             }
         }
 
