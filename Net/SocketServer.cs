@@ -32,13 +32,15 @@ class SocketServer
 
     public static void StartListening()
     {
-        var localEndPoint = new IPEndPoint(ServerSettings.ResolveBindAddress(), Port);
+        var bindAddress = ServerSettings.ResolveBindAddress();
+        var localEndPoint = new IPEndPoint(bindAddress, Port);
 
         Socket listener = new Socket(AddressFamily.InterNetwork,
             SocketType.Stream, ProtocolType.Tcp);
 
         try
         {
+            Out.WriteLine($"Binding SocketServer to {localEndPoint}", "SocketServer");
             listener.Bind(localEndPoint);
             listener.Listen(100);
 
@@ -56,6 +58,7 @@ class SocketServer
         }
         catch (Exception e)
         {
+            Out.WriteLine($"Failed to start SocketServer listener on {localEndPoint}: {e.Message}", "SocketServer");
             Logger.Log("error_log", $"- [SocketServer.cs] StartListening void exception: {e}");
         }
     }

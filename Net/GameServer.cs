@@ -17,13 +17,15 @@ namespace Ow.Net
 
         public static void StartListening()
         {
-            var localEndPoint = new IPEndPoint(ServerSettings.ResolveBindAddress(), Port);
+            var bindAddress = ServerSettings.ResolveBindAddress();
+            var localEndPoint = new IPEndPoint(bindAddress, Port);
 
             Socket listener = new Socket(AddressFamily.InterNetwork,
                 SocketType.Stream, ProtocolType.Tcp);
 
             try
             {
+                Out.WriteLine($"Binding GameServer to {localEndPoint}", "GameServer");
                 listener.Bind(localEndPoint);
                 listener.Listen(100);
 
@@ -41,6 +43,7 @@ namespace Ow.Net
             }
             catch (Exception e)
             {
+                Out.WriteLine($"Failed to start GameServer listener on {localEndPoint}: {e.Message}", "GameServer");
                 Logger.Log("error_log", $"- [GameServer.cs] StartListening void exception: {e}");
             }
         }
