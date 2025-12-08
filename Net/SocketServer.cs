@@ -29,7 +29,8 @@ public class StateObject
 
 class SocketServer
 {
-    private const int MaxEmptyOrPollRetries = 5;
+    private const int MaxEmptyOrPollRetries = 100;
+    private const int PollWaitMicroseconds = 500000;
     public static ManualResetEvent allDone = new ManualResetEvent(false);
     public static int Port = 4301;
 
@@ -283,7 +284,7 @@ class SocketServer
     {
         try
         {
-            return handler != null && !(handler.Poll(1, SelectMode.SelectRead) && handler.Available == 0);
+            return handler != null && !(handler.Poll(PollWaitMicroseconds, SelectMode.SelectRead) && handler.Available == 0);
         }
         catch
         {
