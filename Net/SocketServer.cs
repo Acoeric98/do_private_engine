@@ -204,8 +204,8 @@ class SocketServer
         }
         catch (Exception e)
         {
-            Out.WriteLine($"Socket read error from {handler?.RemoteEndPoint ?? state?.workSocket?.RemoteEndPoint}: {e.Message}", "SocketServer", ConsoleColor.Red);
-            Close(handler ?? state?.workSocket);
+            Out.WriteLine($"Socket read error from {state?.workSocket?.RemoteEndPoint}: {e.Message}", "SocketServer", ConsoleColor.Red);
+            Close(state?.workSocket);
         }
     }
 
@@ -237,24 +237,21 @@ class SocketServer
 
         private static void SendCallback(IAsyncResult ar)
         {
-            var handler = ar.AsyncState as Socket;
+            try
+            {
+                Socket handler = (Socket)ar.AsyncState;
 
             if (handler == null)
             {
                 return;
             }
 
-            try
-            {
-                handler.EndSend(ar);
-            }
-            catch (ObjectDisposedException)
-            {
-                Out.WriteLine($"Socket send callback skipped because client {handler.RemoteEndPoint} is already closed", "SocketServer");
+                handler.Shutdown(SocketShutdown.Both);
+                handler.Close();
             }
             catch (Exception e)
             {
-                Out.WriteLine($"Socket send callback error for {handler.RemoteEndPoint}: {e.Message}", "SocketServer", ConsoleColor.Red);
+                Out.WriteLine($"Socket send callback error for {((Socket)ar.AsyncState)?.RemoteEndPoint}: {e.Message}", "SocketServer", ConsoleColor.Red);
             }
         }
 
