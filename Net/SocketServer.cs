@@ -188,7 +188,22 @@ class SocketServer
                 if (!string.IsNullOrEmpty(content))
                 {
                     var json = Parse(content);
+                    if (json == null)
+                    {
+                        Out.WriteLine($"Ignoring invalid JSON payload from {handler?.RemoteEndPoint}: {content}", "SocketServer");
+                        handler.BeginReceive(state.buffer, 0, StateObject.BufferSize, 0,
+                            new AsyncCallback(ReadCallback), state);
+                        return;
+                    }
+
                     var parameters = Parse(json["Parameters"]);
+                    if (parameters == null)
+                    {
+                        Out.WriteLine($"Ignoring payload without valid Parameters from {handler?.RemoteEndPoint}: {content}", "SocketServer");
+                        handler.BeginReceive(state.buffer, 0, StateObject.BufferSize, 0,
+                            new AsyncCallback(ReadCallback), state);
+                        return;
+                    }
 
                     Execute(json, parameters, handler);
 
@@ -214,9 +229,20 @@ class SocketServer
     {
         try
         {
+            if (handler == null)
+            {
+                Out.WriteLine("Close called with null socket handler", "SocketServer");
+                return;
+            }
+
             var logReason = string.IsNullOrWhiteSpace(reason) ? "No reason provided" : reason;
             Out.WriteLine($"Closing socket client {handler?.RemoteEndPoint} (Reason: {logReason})", "SocketServer");
-            handler.Shutdown(SocketShutdown.Both);
+
+            if (handler.Connected)
+            {
+                handler.Shutdown(SocketShutdown.Both);
+            }
+
             handler.Close();
         }
         catch { }
