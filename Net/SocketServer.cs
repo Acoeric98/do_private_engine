@@ -241,7 +241,10 @@ class SocketServer
             {
                 Socket handler = (Socket)ar.AsyncState;
 
-            handler.EndSend(ar);
+            if (handler == null)
+            {
+                return;
+            }
 
                 handler.Shutdown(SocketShutdown.Both);
                 handler.Close();
