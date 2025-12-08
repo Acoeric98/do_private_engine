@@ -72,8 +72,9 @@ class SocketServer
             Socket listener = (Socket)ar.AsyncState;
             Socket handler = listener.EndAccept(ar);
 
+            Out.WriteLine($"Accepted socket client from {handler.RemoteEndPoint}", "SocketServer");
             Connection(handler);
-        } 
+        }
         catch (Exception e)
         {
             Logger.Log("error_log", $"- [SocketServer.cs] AcceptCallback void exception: {e}");
@@ -168,12 +169,14 @@ class SocketServer
 
     public static void ReadCallback(IAsyncResult ar)
     {
+        StateObject state = null;
+        Socket handler = null;
         try
         {
             String content = string.Empty;
 
-            StateObject state = (StateObject)ar.AsyncState;
-            Socket handler = state.workSocket;
+            state = (StateObject)ar.AsyncState;
+            handler = state.workSocket;
 
             int bytesRead = handler.EndReceive(ar);
 
@@ -195,16 +198,22 @@ class SocketServer
             }
             else
             {
+                Out.WriteLine($"Remote endpoint {handler?.RemoteEndPoint} closed the socket connection", "SocketServer");
                 Close(handler);
             }
         }
-        catch { }
+        catch (Exception e)
+        {
+            Out.WriteLine($"Socket read error from {handler?.RemoteEndPoint ?? state?.workSocket?.RemoteEndPoint}: {e.Message}", "SocketServer", ConsoleColor.Red);
+            Close(handler ?? state?.workSocket);
+        }
     }
 
     public static void Close(Socket handler)
     {
         try
         {
+            Out.WriteLine($"Closing socket client {handler?.RemoteEndPoint}", "SocketServer");
             handler.Shutdown(SocketShutdown.Both);
             handler.Close();
         }
@@ -226,22 +235,28 @@ class SocketServer
         }
     }
 
-    private static void SendCallback(IAsyncResult ar)
-    {
-        try
+        private static void SendCallback(IAsyncResult ar)
         {
-            Socket handler = (Socket)ar.AsyncState;
+            var handler = ar.AsyncState as Socket;
 
-            handler.EndSend(ar);
+            if (handler == null)
+            {
+                return;
+            }
 
-            handler.Shutdown(SocketShutdown.Both);
-            handler.Close();
+            try
+            {
+                handler.EndSend(ar);
+            }
+            catch (ObjectDisposedException)
+            {
+                Out.WriteLine($"Socket send callback skipped because client {handler.RemoteEndPoint} is already closed", "SocketServer");
+            }
+            catch (Exception e)
+            {
+                Out.WriteLine($"Socket send callback error for {handler.RemoteEndPoint}: {e.Message}", "SocketServer", ConsoleColor.Red);
+            }
         }
-        catch (Exception e)
-        {
-            //Logger.Log("error_log", $"- [SocketServer.cs] SendCallback void exception: {e}");
-        }
-    }
 
     public static void KickPlayer(Player player, string reason)
     {
@@ -505,7 +520,7 @@ class SocketServer
             return Convert.ToInt32(value.ToString());
 
         }
-        catch (Exception e)
+        catch (Exception)
         {
             return 0;
         }
@@ -518,11 +533,11 @@ class SocketServer
             return Convert.ToInt16(value.ToString());
 
         }
-        catch (Exception e)
+        catch (Exception)
         {
             return 0;
         }
-        
+
     }
 
     public static string String(object value)
@@ -532,11 +547,11 @@ class SocketServer
             return value.ToString();
 
         }
-        catch (Exception e)
+        catch (Exception)
         {
             return "";
         }
-        
+
     }
 
     public static JObject Parse(object value)
@@ -546,7 +561,7 @@ class SocketServer
             return JObject.Parse(value.ToString());
 
         }
-        catch (Exception e)
+        catch (Exception)
         {
             return null;
         }
