@@ -213,8 +213,16 @@ class SocketServer
             else
             {
                 var stillConnected = IsSocketConnected(handler);
-                Out.WriteLine($"Remote endpoint {handler?.RemoteEndPoint} closed the socket connection (Connected flag: {handler?.Connected}, Poll check: {stillConnected})", "SocketServer");
-                Close(handler, "Remote endpoint closed the socket connection");
+
+                if (!stillConnected)
+                {
+                    Out.WriteLine($"Remote endpoint {handler?.RemoteEndPoint} closed the socket connection (Connected flag: {handler?.Connected}, Poll check: {stillConnected})", "SocketServer");
+                    Close(handler, "Remote endpoint closed the socket connection");
+                    return;
+                }
+
+                Out.WriteLine($"No data received from {handler?.RemoteEndPoint} but socket remains connected; waiting for payload", "SocketServer");
+                handler.BeginReceive(state.buffer, 0, StateObject.BufferSize, 0, new AsyncCallback(ReadCallback), state);
             }
         }
         catch (Exception e)
