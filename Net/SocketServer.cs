@@ -241,13 +241,12 @@ class SocketServer
             {
                 Socket handler = (Socket)ar.AsyncState;
 
-            if (handler == null)
-            {
-                return;
-            }
+                if (handler == null || !handler.Connected)
+                {
+                    return;
+                }
 
-                handler.Shutdown(SocketShutdown.Both);
-                handler.Close();
+                handler.EndSend(ar);
             }
             catch (Exception e)
             {
