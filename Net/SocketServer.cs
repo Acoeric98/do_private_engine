@@ -204,8 +204,8 @@ class SocketServer
         }
         catch (Exception e)
         {
-            Out.WriteLine($"Socket read error from {handler?.RemoteEndPoint ?? state?.workSocket?.RemoteEndPoint}: {e.Message}", "SocketServer", ConsoleColor.Red);
-            Close(handler ?? state?.workSocket);
+            Out.WriteLine($"Socket read error from {state?.workSocket?.RemoteEndPoint}: {e.Message}", "SocketServer", ConsoleColor.Red);
+            Close(state?.workSocket);
         }
     }
 
