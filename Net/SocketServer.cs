@@ -23,10 +23,13 @@ public class StateObject
     public const int BufferSize = 1024;
     public byte[] buffer = new byte[BufferSize];
     public StringBuilder sb = new StringBuilder();
+    public int EmptyReadAttempts { get; set; }
+    public int PollFailureAttempts { get; set; }
 }
 
 class SocketServer
 {
+    private const int MaxEmptyOrPollRetries = 5;
     public static ManualResetEvent allDone = new ManualResetEvent(false);
     public static int Port = 4301;
 
@@ -181,6 +184,9 @@ class SocketServer
 
             if (bytesRead > 0)
             {
+                state.EmptyReadAttempts = 0;
+                state.PollFailureAttempts = 0;
+
                 content = Encoding.UTF8.GetString(
                     state.buffer, 0, bytesRead);
 
@@ -216,12 +222,30 @@ class SocketServer
 
                 if (!stillConnected)
                 {
-                    Out.WriteLine($"Remote endpoint {handler?.RemoteEndPoint} closed the socket connection (Connected flag: {handler?.Connected}, Poll check: {stillConnected})", "SocketServer");
-                    Close(handler, "Remote endpoint closed the socket connection");
+                    state.PollFailureAttempts++;
+
+                    if (state.PollFailureAttempts >= MaxEmptyOrPollRetries)
+                    {
+                        Out.WriteLine($"Remote endpoint {handler?.RemoteEndPoint} closed the socket connection after {state.PollFailureAttempts} failed polls (Connected flag: {handler?.Connected}, Poll check: {stillConnected})", "SocketServer");
+                        Close(handler, "Remote endpoint closed the socket connection");
+                        return;
+                    }
+
+                    Out.WriteLine($"Poll check failed for {handler?.RemoteEndPoint}; retrying {state.PollFailureAttempts}/{MaxEmptyOrPollRetries} before closing", "SocketServer");
+                    handler.BeginReceive(state.buffer, 0, StateObject.BufferSize, 0, new AsyncCallback(ReadCallback), state);
                     return;
                 }
 
-                Out.WriteLine($"No data received from {handler?.RemoteEndPoint} but socket remains connected; waiting for payload", "SocketServer");
+                state.EmptyReadAttempts++;
+
+                if (state.EmptyReadAttempts >= MaxEmptyOrPollRetries)
+                {
+                    Out.WriteLine($"No data received from {handler?.RemoteEndPoint} after {state.EmptyReadAttempts} attempts; closing connection", "SocketServer");
+                    Close(handler, "No data received after multiple attempts");
+                    return;
+                }
+
+                Out.WriteLine($"No data received from {handler?.RemoteEndPoint} but socket remains connected; attempt {state.EmptyReadAttempts}/{MaxEmptyOrPollRetries}", "SocketServer");
                 handler.BeginReceive(state.buffer, 0, StateObject.BufferSize, 0, new AsyncCallback(ReadCallback), state);
             }
         }
