@@ -18,13 +18,15 @@ namespace Ow.Net
 
         public static void StartListening()
         {
-            var localEndPoint = new IPEndPoint(ServerSettings.ResolveBindAddress(), Port);
+            var bindAddress = ServerSettings.ResolveBindAddress();
+            var localEndPoint = new IPEndPoint(bindAddress, Port);
 
             Socket listener = new Socket(AddressFamily.InterNetwork,
                 SocketType.Stream, ProtocolType.Tcp);
 
             try
             {
+                Out.WriteLine($"Binding ChatServer to {localEndPoint}", "ChatServer");
                 listener.Bind(localEndPoint);
                 listener.Listen(100);
 
@@ -42,6 +44,7 @@ namespace Ow.Net
             }
             catch (Exception e)
             {
+                Out.WriteLine($"Failed to start ChatServer listener on {localEndPoint}: {e.Message}", "ChatServer");
                 Logger.Log("error_log", $"- [ChatServer.cs] StartListening void exception: {e}");
             }
         }
