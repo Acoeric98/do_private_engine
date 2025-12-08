@@ -199,21 +199,22 @@ class SocketServer
             else
             {
                 Out.WriteLine($"Remote endpoint {handler?.RemoteEndPoint} closed the socket connection", "SocketServer");
-                Close(handler);
+                Close(handler, "Remote endpoint closed the socket connection");
             }
         }
         catch (Exception e)
         {
             Out.WriteLine($"Socket read error from {state?.workSocket?.RemoteEndPoint}: {e.Message}", "SocketServer", ConsoleColor.Red);
-            Close(state?.workSocket);
+            Close(state?.workSocket, $"Socket read error: {e.Message}");
         }
     }
 
-    public static void Close(Socket handler)
+    public static void Close(Socket handler, string reason = null)
     {
         try
         {
-            Out.WriteLine($"Closing socket client {handler?.RemoteEndPoint}", "SocketServer");
+            var logReason = string.IsNullOrWhiteSpace(reason) ? "No reason provided" : reason;
+            Out.WriteLine($"Closing socket client {handler?.RemoteEndPoint} (Reason: {logReason})", "SocketServer");
             handler.Shutdown(SocketShutdown.Both);
             handler.Close();
         }
