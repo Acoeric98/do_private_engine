@@ -72,8 +72,9 @@ class SocketServer
             Socket listener = (Socket)ar.AsyncState;
             Socket handler = listener.EndAccept(ar);
 
+            Out.WriteLine($"Accepted socket client from {handler.RemoteEndPoint}", "SocketServer");
             Connection(handler);
-        } 
+        }
         catch (Exception e)
         {
             Logger.Log("error_log", $"- [SocketServer.cs] AcceptCallback void exception: {e}");
@@ -195,16 +196,22 @@ class SocketServer
             }
             else
             {
+                Out.WriteLine($"Remote endpoint {handler?.RemoteEndPoint} closed the socket connection", "SocketServer");
                 Close(handler);
             }
         }
-        catch { }
+        catch (Exception e)
+        {
+            Out.WriteLine($"Socket read error from {state?.workSocket?.RemoteEndPoint}: {e.Message}", "SocketServer", ConsoleColor.Red);
+            Close(state?.workSocket);
+        }
     }
 
     public static void Close(Socket handler)
     {
         try
         {
+            Out.WriteLine($"Closing socket client {handler?.RemoteEndPoint}", "SocketServer");
             handler.Shutdown(SocketShutdown.Both);
             handler.Close();
         }

@@ -73,6 +73,7 @@ namespace Ow.Chat
         {
             Socket = handler;
 
+            Out.WriteLine($"Chat client connected from {handler.RemoteEndPoint}", "ChatClient");
             StateObject state = new StateObject();
             state.workSocket = handler;
             handler.BeginReceive(state.buffer, 0, StateObject.BufferSize, 0,
@@ -800,6 +801,7 @@ namespace Ow.Chat
         {
             try
             {
+                Out.WriteLine($"Closing chat connection for user {UserId} from {Socket?.RemoteEndPoint}", "ChatClient");
                 Socket.Shutdown(SocketShutdown.Both);
                 Socket.Close();
 
@@ -845,6 +847,7 @@ namespace Ow.Chat
             }
             catch
             {
+                Out.WriteLine($"Chat socket error for user {UserId} from {Socket?.RemoteEndPoint}", "ChatClient");
                 Close();
             }
         }
