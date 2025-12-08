@@ -196,10 +196,15 @@ class SocketServer
             }
             else
             {
+                Out.WriteLine($"Remote endpoint {handler?.RemoteEndPoint} closed the socket connection", "SocketServer");
                 Close(handler);
             }
         }
-        catch { }
+        catch (Exception e)
+        {
+            Out.WriteLine($"Socket read error from {state?.workSocket?.RemoteEndPoint}: {e.Message}", "SocketServer", ConsoleColor.Red);
+            Close(state?.workSocket);
+        }
     }
 
     public static void Close(Socket handler)

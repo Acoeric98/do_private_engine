@@ -103,6 +103,7 @@ namespace Ow.Net
                 }
                 else
                 {
+                    Out.WriteLine($"Remote endpoint {Socket?.RemoteEndPoint} closed the connection", "GameClient");
                     Close();
                 }
             }
