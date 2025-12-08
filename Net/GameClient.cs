@@ -57,8 +57,7 @@ namespace Ow.Net
             }
             catch (Exception e)
             {
-                //ignored
-                //Logger.Log("error_log", $"- [GameClient.cs] Close void exception: {e}");
+                Out.WriteLine($"Failed to close socket for {Socket?.RemoteEndPoint}: {e.Message}", "GameClient", ConsoleColor.Red);
             }
         }
 
@@ -156,7 +155,7 @@ namespace Ow.Net
             }
             catch (Exception e)
             {
-                //Logger.Log("error_log", $"- [GameClient.cs] SendCallback void exception: {e}");
+                Out.WriteLine($"Error sending data to client: {e.Message}", "GameClient", ConsoleColor.Red);
             }
         }
     }
