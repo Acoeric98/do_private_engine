@@ -233,6 +233,7 @@ class SocketServer
                     }
 
                     Out.WriteLine($"Poll check failed for {handler?.RemoteEndPoint}; retrying {state.PollFailureAttempts}/{MaxEmptyOrPollRetries} before closing", "SocketServer");
+                    Thread.Sleep(PollRetryDelayMilliseconds);
                     handler.BeginReceive(state.buffer, 0, StateObject.BufferSize, 0, new AsyncCallback(ReadCallback), state);
                     return;
                 }
