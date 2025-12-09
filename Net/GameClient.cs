@@ -11,13 +11,16 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Ow.Net
 {
     class GameClient
     {
-        private const int MaxEmptyOrPollRetries = 5;
+        private const int MaxEmptyOrPollRetries = 100;
+        private const int PollWaitMicroseconds = 500000;
+        private const int PollRetryDelayMilliseconds = 500;
         public Socket Socket { get; set; }
         public int UserId { get; set; }
 
@@ -118,6 +121,7 @@ namespace Ow.Net
                         }
 
                         Out.WriteLine($"Poll failure detected for {Socket?.RemoteEndPoint}; retrying {state.PollFailureAttempts}/{MaxEmptyOrPollRetries}", "GameClient");
+                        Thread.Sleep(PollRetryDelayMilliseconds);
                     }
                     else
                     {
@@ -148,7 +152,7 @@ namespace Ow.Net
         {
             try
             {
-                return handler != null && handler.IsBound && handler.Connected && !(handler.Poll(1, SelectMode.SelectRead) && handler.Available == 0);
+                return handler != null && handler.IsBound && handler.Connected && !(handler.Poll(PollWaitMicroseconds, SelectMode.SelectRead) && handler.Available == 0);
             }
             catch
             {
