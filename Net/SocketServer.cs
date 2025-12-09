@@ -31,6 +31,7 @@ class SocketServer
 {
     private const int MaxEmptyOrPollRetries = 100;
     private const int PollWaitMicroseconds = 500000;
+    private const int PollRetryDelayMilliseconds = 500;
     public static ManualResetEvent allDone = new ManualResetEvent(false);
     public static int Port = 4301;
 
