@@ -89,6 +89,13 @@ namespace Ow.Net
                     content = Encoding.UTF8.GetString(
                         state.buffer, 0, bytesRead);
 
+                    if (!state.InitialPayloadLogged)
+                    {
+                        state.InitialPayloadLogged = true;
+                        var payloadPreview = BitConverter.ToString(bytes);
+                        Out.WriteLine($"Initial payload from {Socket?.RemoteEndPoint}: {payloadPreview} | AsText: {content}", "GameClient");
+                    }
+
                     if (content.StartsWith("<policy-file-request/>"))
                     {
                         const string policyPacket = "<?xml version=\"1.0\"?>\r\n" +

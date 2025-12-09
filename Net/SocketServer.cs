@@ -25,6 +25,7 @@ public class StateObject
     public StringBuilder sb = new StringBuilder();
     public int EmptyReadAttempts { get; set; }
     public int PollFailureAttempts { get; set; }
+    public bool InitialPayloadLogged { get; set; }
 }
 
 class SocketServer
@@ -191,6 +192,13 @@ class SocketServer
 
                 content = Encoding.UTF8.GetString(
                     state.buffer, 0, bytesRead);
+
+                if (!state.InitialPayloadLogged)
+                {
+                    state.InitialPayloadLogged = true;
+                    var payloadPreview = BitConverter.ToString(state.buffer, 0, bytesRead);
+                    Out.WriteLine($"Initial payload from {handler?.RemoteEndPoint}: {payloadPreview} | AsText: {content}", "SocketServer");
+                }
 
                 if (!string.IsNullOrEmpty(content))
                 {
