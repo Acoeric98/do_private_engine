@@ -20,12 +20,29 @@ namespace Ow.Net
         {
             var configuredAddress = Environment.GetEnvironmentVariable("CHAT_LISTEN_ADDRESS");
 
-            if (!string.IsNullOrEmpty(configuredAddress) && IPAddress.TryParse(configuredAddress, out var parsedAddress))
+            if (!string.IsNullOrWhiteSpace(configuredAddress))
             {
-                return parsedAddress;
+                if (IPAddress.TryParse(configuredAddress, out var parsedAddress))
+                {
+                    return parsedAddress;
+                }
+
+                try
+                {
+                    var hostAddress = Dns.GetHostAddresses(configuredAddress).FirstOrDefault();
+
+                    if (hostAddress != null)
+                    {
+                        return hostAddress;
+                    }
+                }
+                catch (Exception e)
+                {
+                    Out.WriteLine($"Failed to resolve CHAT_LISTEN_ADDRESS '{configuredAddress}': {e.Message}", "ChatServer");
+                }
             }
 
-            return IPAddress.IPv6Any;
+            return IPAddress.Any;
         }
 
         public static void StartListening()
