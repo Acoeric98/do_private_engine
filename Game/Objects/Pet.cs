@@ -35,8 +35,8 @@ namespace Ow.Game.Objects
             Owner = player;
 
             ShieldAbsorption = 0.8;
-            Damage = 5000;
-            CurrentHitPoints = 2500;
+            Damage = 15000;
+            CurrentHitPoints = 50000;
             MaxHitPoints = 50000;
             MaxShieldPoints = 50000;
             CurrentShieldPoints = MaxShieldPoints;
