@@ -16,15 +16,34 @@ namespace Ow.Net
         public static ManualResetEvent allDone = new ManualResetEvent(false);
         public static int Port = 9338;
 
+        private static IPAddress GetListenAddress()
+        {
+            var configuredAddress = Environment.GetEnvironmentVariable("CHAT_LISTEN_ADDRESS");
+
+            if (!string.IsNullOrEmpty(configuredAddress) && IPAddress.TryParse(configuredAddress, out var parsedAddress))
+            {
+                return parsedAddress;
+            }
+
+            return IPAddress.IPv6Any;
+        }
+
         public static void StartListening()
         {
-            IPEndPoint localEndPoint = new IPEndPoint(IPAddress.Any, Port);
+            IPAddress listenAddress = GetListenAddress();
+            IPEndPoint localEndPoint = new IPEndPoint(listenAddress, Port);
 
-            Socket listener = new Socket(AddressFamily.InterNetwork,
+            Socket listener = new Socket(localEndPoint.AddressFamily,
                 SocketType.Stream, ProtocolType.Tcp);
+
+            if (listener.AddressFamily == AddressFamily.InterNetworkV6)
+            {
+                listener.DualMode = true;
+            }
 
             try
             {
+                Out.WriteLine($"Binding chat listener to {localEndPoint}", "ChatServer");
                 listener.Bind(localEndPoint);
                 listener.Listen(100);
 
