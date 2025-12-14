@@ -1187,6 +1187,12 @@ namespace Ow.Game.Objects.Players.Managers
 
                 case SkillManager.CITADEL_DRAW_FIRE:
                     return new CooldownTypeModule(CooldownTypeModule.short_255);
+                case SkillManager.CITADEL_PROTECTION:
+                    return new CooldownTypeModule(CooldownTypeModule.CITADEL_PROTECTION);
+                case SkillManager.CITADEL_TRAVEL:
+                    return new CooldownTypeModule(CooldownTypeModule.CITADEL_TRAVEL);
+                case SkillManager.CITADEL_FORTIFY:
+                    return new CooldownTypeModule(CooldownTypeModule.CITADEL_FORTIFY);
 
                 case SkillManager.SPEARHEAD_DOUBLE_MINIMAP:
                     return new CooldownTypeModule(CooldownTypeModule.SPEARHEAD_DOUBLE_MINIMAP);
@@ -1330,6 +1336,9 @@ namespace Ow.Game.Objects.Players.Managers
                 case SkillManager.AEGIS_SHIELD_REPAIR:
                 case SkillManager.AEGIS_REPAIR_POD:
                 case SkillManager.CITADEL_DRAW_FIRE:
+                case SkillManager.CITADEL_PROTECTION:
+                case SkillManager.CITADEL_TRAVEL:
+                case SkillManager.CITADEL_FORTIFY:
                     if (Player.Storage.Skills.ContainsKey(pItemId))
                     {
                         var cooldown = (DateTime.Now - Player.Storage.Skills[pItemId].cooldown).TotalMilliseconds;
