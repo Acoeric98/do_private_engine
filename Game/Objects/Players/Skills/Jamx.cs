@@ -18,6 +18,7 @@ namespace Ow.Game.Objects.Players.Skills
         public override void Send()
         {
             var spearheadIds = new List<int> { Ship.SPEARHEAD, Ship.SPEARHEAD_ELITE, Ship.SPEARHEAD_VETERAN };
+            var jamxLockout = 15000;
 
             if (spearheadIds.Contains(Player.Ship.Id) && (cooldown.AddMilliseconds(Cooldown) < DateTime.Now || Player.Storage.GodMode))
             {
@@ -25,7 +26,7 @@ namespace Ow.Game.Objects.Players.Skills
 
                 if (target is Player targetPlayer && Player.TargetDefinition(targetPlayer, false))
                 {
-                    targetPlayer.SkillManager.DisableAllSkills();
+                    targetPlayer.SkillManager.ApplyJamxCooldown(jamxLockout);
                     targetPlayer.CpuManager.DisableCloak();
                 }
 
