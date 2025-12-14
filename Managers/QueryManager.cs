@@ -310,7 +310,7 @@ namespace Ow.Managers
                 foreach (DataRow row in data.Rows)
                 {
                     int mapId = Convert.ToInt32(row["mapID"]);
-                    string name = Convert.ToString(row["name"]);
+                    string name = Convert.ToString(row["name"]).Trim();
                     int factionId = Convert.ToInt32(row["factionID"]);
                     var npcs = JsonConvert.DeserializeObject<List<NpcsBase>>(row["npcs"].ToString());
                     var portals = JsonConvert.DeserializeObject<List<PortalBase>>(row["portals"].ToString());
@@ -437,13 +437,13 @@ namespace Ow.Managers
                 var data = (DataTable)mySqlClient.ExecuteQueryTable("SELECT * FROM server_ships");
                 foreach (DataRow row in data.Rows)
                 {
-                    string name = Convert.ToString(row["name"]);
+                    string name = Convert.ToString(row["name"]).Trim();
                     int shipID = Convert.ToInt32(row["shipID"]);
                     int damage = Convert.ToInt32(row["damage"]);
                     int shields = Convert.ToInt32(row["shield"]);
                     int hitpoints = Convert.ToInt32(row["health"]);
                     int speed = Convert.ToInt32(row["speed"]);
-                    string lootID = Convert.ToString(row["lootID"]);
+                    string lootID = Convert.ToString(row["lootID"]).Trim();
                     bool aggressive = Convert.ToBoolean(row["aggressive"]);
                     bool respawnable = Convert.ToBoolean(row["respawnable"]);
                     var rewards = JsonConvert.DeserializeObject<ShipRewards>(row["reward"].ToString());
