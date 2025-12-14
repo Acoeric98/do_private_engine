@@ -92,7 +92,25 @@ namespace Ow.Game.Objects.Players.Managers
         public void DisableAllSkills()
         {
             foreach (var skill in Player.Storage.Skills.Values)
-                skill.Disable();
+                if (skill.Active)
+                    skill.Disable();
+        }
+
+        public void ApplyJamxCooldown(int jamxCooldown)
+        {
+            foreach (var skill in Player.Storage.Skills.Values)
+            {
+                if (skill.Active)
+                    skill.Disable();
+
+                var skillReadyTime = skill.cooldown.AddMilliseconds(skill.Duration + skill.Cooldown);
+
+                if (skillReadyTime <= DateTime.Now)
+                {
+                    skill.cooldown = DateTime.Now.AddMilliseconds(-(skill.Duration + skill.Cooldown) + jamxCooldown);
+                    Player.SendCooldown(skill.LootId, jamxCooldown);
+                }
+            }
         }
     }
 }
