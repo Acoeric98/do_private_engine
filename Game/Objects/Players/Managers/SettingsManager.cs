@@ -430,14 +430,23 @@ namespace Ow.Game.Objects.Players.Managers
 
         public static string[] AbilitiesCategory =
         {
-            SkillManager.SPECTRUM, SkillManager.VENOM, SkillManager.SENTINEL, SkillManager.SOLACE, SkillManager.DIMINISHER,
-            SkillManager.LIGHTNING, SkillManager.AEGIS_HP_REPAIR, SkillManager.AEGIS_SHIELD_REPAIR, SkillManager.AEGIS_REPAIR_POD,
-            SkillManager.CITADEL_DRAW_FIRE
-            /*
-                SkillManager.CITADEL_FORTIFY, SkillManager.CITADEL_PROTECTION, SkillManager.CITADEL_TRAVEL, SkillManager.DIMINISHER,
-                SkillManager.LIGHTNING, SkillManager.SENTINEL, SkillManager.SOLACE, SkillManager.SPEARHEAD_DOUBLE_MINIMAP,
-                SkillManager.SPEARHEAD_JAM_X, SkillManager.SPEARHEAD_TARGET_MARKER, SkillManager.SPEARHEAD_ULTIMATE_CLOAK,
-                SkillManager.SPECTRUM, SkillManager.VENOM*/
+            SkillManager.SPECTRUM,
+            SkillManager.VENOM,
+            SkillManager.SENTINEL,
+            SkillManager.SOLACE,
+            SkillManager.DIMINISHER,
+            SkillManager.LIGHTNING,
+            SkillManager.AEGIS_HP_REPAIR,
+            SkillManager.AEGIS_SHIELD_REPAIR,
+            SkillManager.AEGIS_REPAIR_POD,
+            SkillManager.CITADEL_DRAW_FIRE,
+            SkillManager.CITADEL_FORTIFY,
+            SkillManager.CITADEL_PROTECTION,
+            SkillManager.CITADEL_TRAVEL,
+            SkillManager.SPEARHEAD_DOUBLE_MINIMAP,
+            SkillManager.SPEARHEAD_JAM_X,
+            SkillManager.SPEARHEAD_TARGET_MARKER,
+            SkillManager.SPEARHEAD_ULTIMATE_CLOAK
 
         };
 
