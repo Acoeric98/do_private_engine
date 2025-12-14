@@ -444,6 +444,8 @@ namespace Ow.Managers
                     int hitpoints = Convert.ToInt32(row["health"]);
                     int speed = Convert.ToInt32(row["speed"]);
                     string lootID = Convert.ToString(row["lootID"]);
+                    if (string.IsNullOrWhiteSpace(lootID))
+                        lootID = GetShipLootIdFallback(shipID, name);
                     bool aggressive = Convert.ToBoolean(row["aggressive"]);
                     bool respawnable = Convert.ToBoolean(row["respawnable"]);
                     var rewards = JsonConvert.DeserializeObject<ShipRewards>(row["reward"].ToString());
@@ -452,6 +454,28 @@ namespace Ow.Managers
                     GameManager.Ships.TryAdd(ship.Id, ship);
                 }
             }
+        }
+
+        private static string GetShipLootIdFallback(int shipId, string name)
+        {
+            var fallbackLookup = new Dictionary<int, string>
+            {
+                { Ship.AEGIS, "ship_aegis" },
+                { Ship.AEGIS_VETERAN, "ship_aegis-veteran" },
+                { Ship.AEGIS_ELITE, "ship_aegis-elite" },
+                { Ship.SPEARHEAD, "ship_spearhead" },
+                { Ship.SPEARHEAD_VETERAN, "ship_spearhead-veteran" },
+                { Ship.SPEARHEAD_ELITE, "ship_spearhead-elite" },
+                { Ship.CITADEL, "ship_citadel" },
+                { Ship.CITADEL_VETERAN, "ship_citadel-veteran" },
+                { Ship.CITADEL_ELITE, "ship_citadel-elite" }
+            };
+
+            if (fallbackLookup.TryGetValue(shipId, out var lootId))
+                return lootId;
+
+            var safeName = name?.Trim().ToLower().Replace(" ", "-") ?? "";
+            return string.IsNullOrEmpty(safeName) ? "ship" : $"ship_{safeName}";
         }
 
         public static void LoadClans()
