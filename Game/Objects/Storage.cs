@@ -77,6 +77,9 @@ namespace Ow.Game.Objects
         public bool Lightning = false;
         public bool Sentinel = false;
         public bool Spectrum = false;
+        public bool CitadelProtection = false;
+        public bool CitadelTravel = false;
+        public bool CitadelFortify = false;
 
         public bool Diminisher = false;
         public Attackable UnderDiminisherEntity { get; set; }
@@ -107,6 +110,10 @@ namespace Ow.Game.Objects
         public bool underDrawFire = false;
         public DateTime underDrawFireTime = new DateTime();
 
+        public bool underTargetMarker = false;
+        public DateTime underTargetMarkerTime = new DateTime();
+        public Player targetMarkerOwner = null;
+
         public DateTime lastChangeShipTime = new DateTime();
 
         public bool GroupCombatSituation = false;
@@ -131,6 +138,8 @@ namespace Ow.Game.Objects
                 DeactiveWizardEffect();
             if (underDrawFire && underDrawFireTime.AddMilliseconds(TimeManager.CITADEL_DRAWFIRE_DURATION) < DateTime.Now)
                 DeactiveDrawFireEffect();
+            if (underTargetMarker && underTargetMarkerTime.AddMilliseconds(TimeManager.SPEARHEAD_TARGET_MARKER_DURATION) < DateTime.Now)
+                DeactiveTargetMarkerEffect();
 
             if (Character is Player player && player.Group != null)
             {
@@ -248,6 +257,16 @@ namespace Ow.Game.Objects
             {
                 underDrawFire = false;
                 Character.RemoveVisualModifier(VisualModifierCommand.DRAW_FIRE_TARGET);
+            }
+        }
+
+        public void DeactiveTargetMarkerEffect()
+        {
+            if (underTargetMarker)
+            {
+                underTargetMarker = false;
+                targetMarkerOwner = null;
+                Character.RemoveVisualModifier(VisualModifierCommand.DAMAGE_ICON);
             }
         }
     }

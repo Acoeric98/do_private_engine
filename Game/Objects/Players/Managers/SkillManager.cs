@@ -61,7 +61,20 @@ namespace Ow.Game.Objects.Players.Managers
                         Player.Storage.Skills.Add(SkillManager.AEGIS_REPAIR_POD, new AegisRepairPod(Player));
                         break;
                     case Ship.CITADEL:
+                    case Ship.CITADEL_ELITE:
+                    case Ship.CITADEL_VETERAN:
                         Player.Storage.Skills.Add(SkillManager.CITADEL_DRAW_FIRE, new DrawFire(Player));
+                        Player.Storage.Skills.Add(SkillManager.CITADEL_PROTECTION, new Protection(Player));
+                        Player.Storage.Skills.Add(SkillManager.CITADEL_TRAVEL, new Travel(Player));
+                        Player.Storage.Skills.Add(SkillManager.CITADEL_FORTIFY, new Fortify(Player));
+                        break;
+                    case Ship.SPEARHEAD:
+                    case Ship.SPEARHEAD_ELITE:
+                    case Ship.SPEARHEAD_VETERAN:
+                        Player.Storage.Skills.Add(SkillManager.SPEARHEAD_DOUBLE_MINIMAP, new Recon(Player));
+                        Player.Storage.Skills.Add(SkillManager.SPEARHEAD_JAM_X, new Jamx(Player));
+                        Player.Storage.Skills.Add(SkillManager.SPEARHEAD_TARGET_MARKER, new TargetMarker(Player));
+                        Player.Storage.Skills.Add(SkillManager.SPEARHEAD_ULTIMATE_CLOAK, new UltimateCloak(Player));
                         break;
                 }
             }

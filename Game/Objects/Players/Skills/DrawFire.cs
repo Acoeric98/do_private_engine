@@ -30,7 +30,7 @@ namespace Ow.Game.Objects.Players.Skills
 
         public override void Send()
         {
-            var citadelIds = new List<int> { 69 };
+            var citadelIds = new List<int> { Ship.CITADEL, Ship.CITADEL_ELITE, Ship.CITADEL_VETERAN };
 
             if (citadelIds.Contains(Player.Ship.Id) && (cooldown.AddMilliseconds(Duration + Cooldown) < DateTime.Now || Player.Storage.GodMode))
             {
