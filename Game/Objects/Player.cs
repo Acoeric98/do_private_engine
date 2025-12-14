@@ -218,6 +218,12 @@ namespace Ow.Game.Objects
                 if (Storage.Lightning)
                     value += Maths.GetPercentage(value, 30);
 
+                if (Storage.CitadelTravel)
+                    value += Maths.GetPercentage(value, 50);
+
+                if (Storage.CitadelFortify)
+                    value = 0;
+
                 value += Storage.SpeedBoost;
 
                 return value;

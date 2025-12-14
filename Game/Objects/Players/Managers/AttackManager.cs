@@ -484,6 +484,15 @@ namespace Ow.Game.Objects.Players.Managers
                 damageHp = 0;
             }
 
+            if (target is Player targetPlayer)
+            {
+                ApplyTargetMarkerBonus(attacker, targetPlayer, ref damage, ref damageShd, ref damageHp);
+                ApplyFortifyReduction(targetPlayer, ref damageShd, ref damageHp);
+                ApplyCitadelProtection(attacker, targetPlayer, ref damageShd, ref damageHp, damageType);
+            }
+
+            damage = damageHp + damageShd;
+
             if (deactiveCloak)
                 Player.CpuManager.DisableCloak();
 
@@ -581,6 +590,17 @@ namespace Ow.Game.Objects.Players.Managers
             if (attacker.Invincible && damageType != DamageType.RADIATION)
                 attacker.Storage.DeactiveInvincibilityEffect();
 
+            if (target is Player targetPlayer)
+            {
+                if (attacker is Player playerAttacker)
+                    ApplyTargetMarkerBonus(playerAttacker, targetPlayer, ref damage);
+
+                ApplyFortifyReduction(targetPlayer, ref damage, ref damage);
+                ApplyCitadelProtection(attacker, targetPlayer, ref damage, ref damage, damageType);
+            }
+
+            damage = Math.Max(0, damage);
+
             if (target is Player && !(target as Player).Attackable())
             {
                 if (missedEffect)
@@ -643,6 +663,121 @@ namespace Ow.Game.Objects.Players.Managers
             var attackMissedCommandToInRange = AttackMissedCommand.write(new AttackTypeModule((short)damageType), target.Id, 1);
             Player.SendCommand(attackMissedCommand);
             Player.SendCommandToInRangePlayers(attackMissedCommandToInRange);
+        }
+
+        private static void ApplyTargetMarkerBonus(Player attacker, Player targetPlayer, ref int damage)
+        {
+            if (attacker == null) return;
+            if (!targetPlayer.Storage.underTargetMarker) return;
+
+            var owner = targetPlayer.Storage.targetMarkerOwner;
+
+            if (owner == null || owner.Group == null || attacker.Group == null) return;
+            if (owner.Group != attacker.Group) return;
+
+            damage += Maths.GetPercentage(damage, 50);
+        }
+
+        private static void ApplyTargetMarkerBonus(Player attacker, Player targetPlayer, ref int damage, ref int damageShd, ref int damageHp)
+        {
+            if (attacker == null) return;
+            if (!targetPlayer.Storage.underTargetMarker) return;
+
+            var owner = targetPlayer.Storage.targetMarkerOwner;
+
+            if (owner == null || owner.Group == null || attacker.Group == null) return;
+            if (owner.Group != attacker.Group) return;
+
+            damage += Maths.GetPercentage(damage, 50);
+            damageShd += Maths.GetPercentage(damageShd, 50);
+            damageHp += Maths.GetPercentage(damageHp, 50);
+        }
+
+        private static void ApplyFortifyReduction(Player targetPlayer, ref int damageShd, ref int damageHp)
+        {
+            if (!targetPlayer.Storage.CitadelFortify) return;
+
+            damageShd -= Maths.GetPercentage(damageShd, 80);
+            damageHp -= Maths.GetPercentage(damageHp, 80);
+        }
+
+        private static Player GetCitadelProtectionProvider(Player targetPlayer)
+        {
+            return targetPlayer.Group?.Members.Values.FirstOrDefault(member =>
+                member != null && member != targetPlayer && member.Spacemap == targetPlayer.Spacemap &&
+                member.Storage.CitadelProtection && member.Position.DistanceTo(targetPlayer.Position) <= 700);
+        }
+
+        private static void ApplyCitadelProtection(Player attacker, Player targetPlayer, ref int damageShd, ref int damageHp, DamageType damageType)
+        {
+            var protector = GetCitadelProtectionProvider(targetPlayer);
+
+            if (protector == null) return;
+
+            var redirectedShield = Maths.GetPercentage(damageShd, 25);
+            var redirectedHp = Maths.GetPercentage(damageHp, 25);
+
+            if (redirectedShield <= 0 && redirectedHp <= 0) return;
+
+            DealProtectionDamage(attacker, protector, damageType, redirectedShd: redirectedShield, redirectedHp: redirectedHp);
+
+            damageShd -= redirectedShield;
+            damageHp -= redirectedHp;
+        }
+
+        private static void DealProtectionDamage(Player attacker, Player protector, DamageType damageType, int redirectedShd, int redirectedHp)
+        {
+            if (protector.Invincible) return;
+
+            var totalRedirectedDamage = redirectedHp + redirectedShd;
+
+            if (redirectedHp >= protector.CurrentHitPoints && protector.CurrentNanoHull <= 0 && protector.CurrentShieldPoints <= 0)
+            {
+                protector.Destroy(attacker, DestructionType.PLAYER);
+                return;
+            }
+
+            if (redirectedHp > 0)
+            {
+                if (protector.CurrentNanoHull > 0)
+                {
+                    if (protector.CurrentNanoHull - redirectedHp < 0)
+                    {
+                        var nanoDamage = redirectedHp - protector.CurrentNanoHull;
+                        protector.CurrentNanoHull = 0;
+                        protector.CurrentHitPoints -= nanoDamage;
+                    }
+                    else
+                        protector.CurrentNanoHull -= redirectedHp;
+                }
+                else
+                    protector.CurrentHitPoints -= redirectedHp;
+            }
+
+            protector.CurrentShieldPoints -= redirectedShd;
+            protector.LastCombatTime = DateTime.Now;
+
+            if (totalRedirectedDamage > 0)
+            {
+                var hitSourceId = attacker?.Id ?? protector.Id;
+
+                var hitCommand = AttackHitCommand.write(new AttackTypeModule((short)damageType), hitSourceId,
+                                         protector.Id, protector.CurrentHitPoints,
+                                         protector.CurrentShieldPoints, protector.CurrentNanoHull,
+                                         totalRedirectedDamage, false);
+
+                if (attacker != null)
+                {
+                    attacker.SendCommand(hitCommand);
+                    attacker.SendCommandToInRangePlayers(hitCommand);
+                }
+                else
+                {
+                    protector.SendCommandToInRangePlayers(hitCommand);
+                }
+            }
+
+            protector.UpdateStatus();
         }
 
         private bool CheckLaserAttackTime()
