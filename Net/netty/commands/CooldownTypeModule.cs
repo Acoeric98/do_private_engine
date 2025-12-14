@@ -56,6 +56,11 @@ namespace Ow.Net.netty.commands
         public static short SPEED_BUFF = 35;
         public static short short_1439 = 3;
 
+        public static short SPEARHEAD_DOUBLE_MINIMAP = 44;
+        public static short SPEARHEAD_JAMX = 45;
+        public static short SPEARHEAD_TARGET_MARKER = 46;
+        public static short SPEARHEAD_ULTIMATE_CLOAK = 47;
+
         public short var_1413 = 0;
 
         public CooldownTypeModule(short param1)

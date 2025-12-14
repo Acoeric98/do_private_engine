@@ -1188,6 +1188,15 @@ namespace Ow.Game.Objects.Players.Managers
                 case SkillManager.CITADEL_DRAW_FIRE:
                     return new CooldownTypeModule(CooldownTypeModule.short_255);
 
+                case SkillManager.SPEARHEAD_DOUBLE_MINIMAP:
+                    return new CooldownTypeModule(CooldownTypeModule.SPEARHEAD_DOUBLE_MINIMAP);
+                case SkillManager.SPEARHEAD_JAM_X:
+                    return new CooldownTypeModule(CooldownTypeModule.SPEARHEAD_JAMX);
+                case SkillManager.SPEARHEAD_TARGET_MARKER:
+                    return new CooldownTypeModule(CooldownTypeModule.SPEARHEAD_TARGET_MARKER);
+                case SkillManager.SPEARHEAD_ULTIMATE_CLOAK:
+                    return new CooldownTypeModule(CooldownTypeModule.SPEARHEAD_ULTIMATE_CLOAK);
+
                 case AmmunitionManager.R_IC3:
                     return new CooldownTypeModule(CooldownTypeModule.short_1789);
                 case AmmunitionManager.DCR_250:
@@ -1313,6 +1322,10 @@ namespace Ow.Game.Objects.Players.Managers
                 case SkillManager.SOLACE:
                 case SkillManager.DIMINISHER:
                 case SkillManager.LIGHTNING:
+                case SkillManager.SPEARHEAD_DOUBLE_MINIMAP:
+                case SkillManager.SPEARHEAD_JAM_X:
+                case SkillManager.SPEARHEAD_TARGET_MARKER:
+                case SkillManager.SPEARHEAD_ULTIMATE_CLOAK:
                 case SkillManager.AEGIS_HP_REPAIR:
                 case SkillManager.AEGIS_SHIELD_REPAIR:
                 case SkillManager.AEGIS_REPAIR_POD:
