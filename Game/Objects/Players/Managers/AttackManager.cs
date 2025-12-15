@@ -455,6 +455,8 @@ namespace Ow.Game.Objects.Players.Managers
                 spaceball.AddDamage(attacker, damage);
             }
 
+            var targetPlayer = target as Player;
+
             double shieldAbsorb = System.Math.Abs(target.ShieldAbsorption - shieldPenetration);
 
             if (shieldAbsorb > 1)
@@ -484,7 +486,7 @@ namespace Ow.Game.Objects.Players.Managers
                 damageHp = 0;
             }
 
-            if (target is Player targetPlayer)
+            if (targetPlayer != null)
             {
                 ApplyTargetMarkerBonus(attacker, targetPlayer, ref damage, ref damageShd, ref damageHp);
                 ApplyFortifyReduction(targetPlayer, ref damageShd, ref damageHp);
@@ -577,7 +579,7 @@ namespace Ow.Game.Objects.Players.Managers
             target.CurrentShieldPoints -= damageShd;
             target.LastCombatTime = DateTime.Now;
 
-            if (target is Player targetPlayer && targetPlayer.Pet != null)
+            if (targetPlayer?.Pet != null)
                 targetPlayer.Pet.NotifyOwnerAttacked(attacker);
 
             if (Player.Settings.InGameSettings.selectedLaser == AmmunitionManager.CBO_100)
