@@ -45,7 +45,7 @@ namespace Ow.Net
 
                 OnConnectionClosed();
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 //ignored
                 //Logger.Log("error_log", $"- [GameClient.cs] Close void exception: {e}");
@@ -142,7 +142,7 @@ namespace Ow.Net
 
                 handler.EndSend(ar);
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 //Logger.Log("error_log", $"- [GameClient.cs] SendCallback void exception: {e}");
             }
