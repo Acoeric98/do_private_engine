@@ -577,6 +577,9 @@ namespace Ow.Game.Objects.Players.Managers
             target.CurrentShieldPoints -= damageShd;
             target.LastCombatTime = DateTime.Now;
 
+            if (target is Player targetPlayer && targetPlayer.Pet != null)
+                targetPlayer.Pet.NotifyOwnerAttacked(attacker);
+
             if (Player.Settings.InGameSettings.selectedLaser == AmmunitionManager.CBO_100)
                 Player.UpdateStatus();
 
@@ -615,6 +618,9 @@ namespace Ow.Game.Objects.Players.Managers
             }
 
             target.LastCombatTime = DateTime.Now;
+
+            if (target is Player targetPlayer && attacker != null && targetPlayer.Pet != null)
+                targetPlayer.Pet.NotifyOwnerAttacked(attacker);
 
             if (toHp && toDestroy && (damage >= target.CurrentHitPoints || target.CurrentHitPoints <= 0))
             {
