@@ -36,6 +36,9 @@ namespace Ow.Game.Objects
         public bool KamikazeActive = false;
         public bool ComboShipRepairActive = false;
         public bool ComboGuardActive = false;
+        public bool ShieldSacrificeActive = false;
+        public bool ResourceSystemLocatorActive = false;
+        public bool HpLinkActive = false;
         public short GearId = PetGearTypeModule.PASSIVE;
 
         private class PetAbility
@@ -53,6 +56,16 @@ namespace Ow.Game.Objects
         }
 
         private readonly Dictionary<short, PetAbility> _abilities = new Dictionary<short, PetAbility>();
+
+        private DateTime _comboShipRepairEndTime = DateTime.MinValue;
+        private DateTime _lastComboShipRepairTick = DateTime.MinValue;
+        private DateTime _petRepairEndTime = DateTime.MinValue;
+        private DateTime _lastPetRepairTick = DateTime.MinValue;
+        private DateTime _hpLinkEndTime = DateTime.MinValue;
+        private DateTime _hpLinkCooldownEndTime = DateTime.MinValue;
+        private int _lastOwnerHitpoints;
+        private DateTime _lastLocatorPing = DateTime.MinValue;
+        private bool _shieldSacrificeTriggered = false;
 
         public Pet(Player player) : base(Randoms.CreateRandomID(), "P.E.T 15", player.FactionId, GameManager.GetShip(22), player.Position, player.Spacemap, player.Clan)
         {
@@ -76,6 +89,12 @@ namespace Ow.Game.Objects
                 CheckShieldPointsRepair();
                 CheckGuardMode();
                 CheckAutoLoot();
+                CheckComboShipRepair();
+                CheckPetRepair();
+                CheckHpLink();
+                CheckShieldSacrifice();
+                CheckKamikaze();
+                CheckLocators();
                 Follow(Owner);
                 Movement.ActualPosition(this);
             }
@@ -83,7 +102,16 @@ namespace Ow.Game.Objects
 
         public void CheckAutoLoot()
         {
-            //TODO
+            if (!AutoLootActive && !ResourceCollectorActive) return;
+
+            var range = ResourceCollectorActive ? 3000 : 700;
+            var collectables = Spacemap.Objects.Values.OfType<Collectable>()
+                .Where(x => !x.Disposed && x.Character == null && Position.DistanceTo(x.Position) <= range)
+                .OrderBy(x => Position.DistanceTo(x.Position))
+                .FirstOrDefault();
+
+            if (collectables != null)
+                collectables.Collect(this);
         }
 
         public DateTime lastShieldRepairTime = new DateTime();
@@ -198,6 +226,168 @@ namespace Ow.Game.Objects
 
                 target.UpdateStatus();
             }
+        }
+
+        private void CheckComboShipRepair()
+        {
+            if (!ComboShipRepairActive) return;
+
+            if (_comboShipRepairEndTime <= DateTime.Now)
+            {
+                ComboShipRepairActive = false;
+                return;
+            }
+
+            if (_lastComboShipRepairTick.AddSeconds(1) <= DateTime.Now)
+            {
+                var healAmount = 25000;
+                var missingHp = Owner.MaxHitPoints - Owner.CurrentHitPoints;
+                if (missingHp > 0)
+                {
+                    Owner.CurrentHitPoints += Math.Min(healAmount, missingHp);
+                    Owner.UpdateStatus();
+                }
+
+                _lastComboShipRepairTick = DateTime.Now;
+            }
+        }
+
+        private void CheckPetRepair()
+        {
+            if (!RepairActive) return;
+
+            if (_petRepairEndTime <= DateTime.Now)
+            {
+                RepairActive = false;
+                return;
+            }
+
+            if (_lastPetRepairTick.AddSeconds(1) <= DateTime.Now)
+            {
+                var healAmount = 12000;
+                var missingHp = MaxHitPoints - CurrentHitPoints;
+                if (missingHp > 0)
+                {
+                    CurrentHitPoints += Math.Min(healAmount, missingHp);
+                    UpdateStatus();
+                }
+
+                _lastPetRepairTick = DateTime.Now;
+            }
+        }
+
+        private void CheckHpLink()
+        {
+            if (!HpLinkActive)
+            {
+                _lastOwnerHitpoints = Owner.CurrentHitPoints;
+                return;
+            }
+
+            if (_hpLinkEndTime <= DateTime.Now)
+            {
+                HpLinkActive = false;
+                _hpLinkCooldownEndTime = DateTime.Now.AddMinutes(3);
+                Owner.SendPacket("0|A|STM|msg_pet_hp_link_deactivated");
+                return;
+            }
+
+            if (_lastOwnerHitpoints > 0 && Owner.CurrentHitPoints < _lastOwnerHitpoints)
+            {
+                var redirectedDamage = _lastOwnerHitpoints - Owner.CurrentHitPoints;
+                var transferable = Math.Min(redirectedDamage, CurrentHitPoints);
+                Owner.CurrentHitPoints += transferable;
+                CurrentHitPoints -= transferable;
+
+                if (CurrentHitPoints <= 0)
+                {
+                    CurrentHitPoints = 0;
+                    UpdateStatus();
+                    Deactivate(true, true);
+                    HpLinkActive = false;
+                    return;
+                }
+
+                Owner.UpdateStatus();
+                UpdateStatus();
+            }
+
+            _lastOwnerHitpoints = Owner.CurrentHitPoints;
+        }
+
+        private void CheckKamikaze()
+        {
+            if (!KamikazeActive) return;
+
+            var ownerCritical = Owner.CurrentHitPoints < (Owner.MaxHitPoints * 0.2);
+            var petCritical = CurrentHitPoints < (MaxHitPoints * 0.2);
+
+            if (!ownerCritical && !petCritical) return;
+
+            foreach (var character in Owner.InRangeCharacters.Values)
+            {
+                if (character == Owner || character == this) continue;
+
+                if (Position.DistanceTo(character.Position) <= 450)
+                {
+                    var damage = 75000;
+                    character.CurrentHitPoints -= Math.Min(damage, character.CurrentHitPoints);
+                    character.UpdateStatus();
+
+                    if (character.CurrentHitPoints <= 0)
+                        character.Destroy(this, DestructionType.PET);
+                }
+            }
+
+            Deactivate(true, true);
+        }
+
+        private void CheckLocators()
+        {
+            if (!EnemyLocatorActive && !ResourceLocatorActive && !ResourceSystemLocatorActive) return;
+
+            if (_lastLocatorPing.AddSeconds(3) > DateTime.Now) return;
+
+            if (EnemyLocatorActive)
+            {
+                var npcs = Spacemap.Characters.Values.OfType<Npc>().Count(x => Position.DistanceTo(x.Position) <= 2000);
+                Owner.SendPacket($"0|A|STD|npc_locator:{npcs}");
+            }
+
+            if (ResourceLocatorActive || ResourceSystemLocatorActive)
+            {
+                var range = ResourceSystemLocatorActive ? 5000 : 2000;
+                var resources = Spacemap.Objects.Values.OfType<Collectable>().Count(x => Position.DistanceTo(x.Position) <= rang
+e);
+                Owner.SendPacket($"0|A|STD|resource_locator:{resources}");
+            }
+
+            _lastLocatorPing = DateTime.Now;
+        }
+
+        private void CheckShieldSacrifice()
+        {
+            if (!ShieldSacrificeActive) return;
+
+            if (Owner.SelectedCharacter is Player targetPlayer && targetPlayer.Clan == Owner.Clan && Position.DistanceTo(targetPlayer.Position) <= 450)
+            {
+                var transferredShield = Owner.CurrentShieldPoints;
+                if (transferredShield > 0)
+                {
+                    targetPlayer.CurrentShieldPoints = Math.Min(targetPlayer.MaxShieldPoints, targetPlayer.CurrentShieldPoints + transferredShield);
+                    Owner.CurrentShieldPoints = 0;
+                    targetPlayer.UpdateStatus();
+                    Owner.UpdateStatus();
+                }
+
+                Deactivate(true, true);
+                ShieldSacrificeActive = false;
+            }
+        }
+
+        private void HandleTradeModule()
+        {
+            Owner.SendPacket("0|A|STD|trade_module:activated");
         }
 
         public void Activate()
@@ -339,9 +529,36 @@ namespace Ow.Game.Objects
                     break;
                 case PetGearTypeModule.COMBO_SHIP_REPAIR:
                     ComboShipRepairActive = true;
+                    _comboShipRepairEndTime = DateTime.Now.AddSeconds(5);
                     break;
                 case PetGearTypeModule.COMBO_GUARD:
                     ComboGuardActive = true;
+                    if (!_shieldSacrificeTriggered)
+                    {
+                        var shieldBoost = Maths.GetPercentage(Owner.MaxShieldPoints, 20);
+                        Owner.CurrentShieldPoints = Math.Min(Owner.MaxShieldPoints, Owner.CurrentShieldPoints + shieldBoost);
+                        Owner.UpdateStatus();
+                        _shieldSacrificeTriggered = true;
+                    }
+                    break;
+                case PetGearTypeModule.SHIELD_SACRIFICE:
+                    ShieldSacrificeActive = true;
+                    break;
+                case PetGearTypeModule.TRADE_MODULE:
+                    TradePodActive = true;
+                    HandleTradeModule();
+                    break;
+                case PetGearTypeModule.RESOURCE_SYSTEM_LOCATOR:
+                    ResourceSystemLocatorActive = true;
+                    break;
+                case PetGearTypeModule.HP_LINK:
+                    if (_hpLinkCooldownEndTime <= DateTime.Now)
+                    {
+                        HpLinkActive = true;
+                        _hpLinkEndTime = DateTime.Now.AddSeconds(30);
+                        _lastOwnerHitpoints = Owner.CurrentHitPoints;
+                        Owner.SendPacket("0|A|STM|msg_pet_hp_link_activated");
+                    }
                     break;
             }
             GearId = gearId;
@@ -361,21 +578,28 @@ namespace Ow.Game.Objects
             KamikazeActive = false;
             ComboShipRepairActive = false;
             ComboGuardActive = false;
+            ShieldSacrificeActive = false;
+            ResourceSystemLocatorActive = false;
+            HpLinkActive = false;
+            _shieldSacrificeTriggered = false;
         }
 
         private void InitializeAbilities()
         {
             _abilities.Add(PetGearTypeModule.PASSIVE, new PetAbility(PetGearTypeModule.PASSIVE, "Passzív", "A P.E.T. nem hajt végre aktív műveletet."));
             _abilities.Add(PetGearTypeModule.GUARD, new PetAbility(PetGearTypeModule.GUARD, "Őr mód", "A P.E.T. megvédi a gazdáját és az őt támadó ellenségeket célozza."));
-            _abilities.Add(PetGearTypeModule.AUTO_LOOT, new PetAbility(PetGearTypeModule.AUTO_LOOT, "Automata gyűjtőberendezés", "Automatikusan összegyűjti a bónusz- és rakománydobozokat a közelben."));
-            _abilities.Add(PetGearTypeModule.AUTO_RESOURCE_COLLECTION, new PetAbility(PetGearTypeModule.AUTO_RESOURCE_COLLECTION, "Nyersanyaggyűjtő", "A közelben lévő érceket gyűjti be a P.E.T. számára."));
-            _abilities.Add(PetGearTypeModule.ENEMY_LOCATOR, new PetAbility(PetGearTypeModule.ENEMY_LOCATOR, "Ellenségbemérő", "Felderíti a térképen tartózkodó NPC-ket és megjeleníti őket a radaron."));
-            _abilities.Add(PetGearTypeModule.RESOURCE_LOCATOR, new PetAbility(PetGearTypeModule.RESOURCE_LOCATOR, "Nyersanyagbemérő", "Megmutatja a környéken található nyersanyag-lelőhelyeket."));
-            _abilities.Add(PetGearTypeModule.TRADE_POD, new PetAbility(PetGearTypeModule.TRADE_POD, "Kereskedelmi berendezés", "Lehetővé teszi a rakomány azonnali eladását a P.E.T. segítségével."));
-            _abilities.Add(PetGearTypeModule.REPAIR_PET, new PetAbility(PetGearTypeModule.REPAIR_PET, "Életjavítás berendezés", "Szintlépések után növeli a P.E.T. maximális életerejét."));
-            _abilities.Add(PetGearTypeModule.KAMIKAZE, new PetAbility(PetGearTypeModule.KAMIKAZE, "Önmegsemmisítő", "Alacsony HP mellett rárepül az ellenségre és robbanással sebez."));
-            _abilities.Add(PetGearTypeModule.COMBO_SHIP_REPAIR, new PetAbility(PetGearTypeModule.COMBO_SHIP_REPAIR, "Összetett javító", "Repülés közben gyógyítja a hajót és extra védelmet ad a P.E.T.-nek."));
-            _abilities.Add(PetGearTypeModule.COMBO_GUARD, new PetAbility(PetGearTypeModule.COMBO_GUARD, "Összetett védelmi", "Azonnali pajzsot és megnövelt védekezést biztosít a P.E.T. számára."));
+            _abilities.Add(PetGearTypeModule.AUTO_LOOT, new PetAbility(PetGearTypeModule.AUTO_LOOT, "G-AL3 — Auto Loot Module III", "Automatikusan felismeri és begyűjti a közelben található bónusz- és rakománydobozokat (700 egység)."));
+            _abilities.Add(PetGearTypeModule.AUTO_RESOURCE_COLLECTION, new PetAbility(PetGearTypeModule.AUTO_RESOURCE_COLLECTION, "G-AR3 — Resource Collector Module III", "Automatikus nyersanyaggyűjtés 3000 egységen belül."));
+            _abilities.Add(PetGearTypeModule.ENEMY_LOCATOR, new PetAbility(PetGearTypeModule.ENEMY_LOCATOR, "G-EL3 — Enemy Locator Module III", "Felderíti a rendszerben tartózkodó NPC-ket és kijelzi számukat."));
+            _abilities.Add(PetGearTypeModule.RESOURCE_LOCATOR, new PetAbility(PetGearTypeModule.RESOURCE_LOCATOR, "G-RL3 — Resource Locator Module III", "Megmutatja a környéken található nyersanyagokat."));
+            _abilities.Add(PetGearTypeModule.TRADE_POD, new PetAbility(PetGearTypeModule.TRADE_POD, "G-TRA3 — Trade Module III", "A rakomány azonnali eladása +30% bónusszal."));
+            _abilities.Add(PetGearTypeModule.REPAIR_PET, new PetAbility(PetGearTypeModule.REPAIR_PET, "G-REP3 — PET Repair Module III", "15 másodpercig másodpercenként 12 000 HP-val javítja a P.E.T.-et."));
+            _abilities.Add(PetGearTypeModule.KAMIKAZE, new PetAbility(PetGearTypeModule.KAMIKAZE, "G-KK3 — Kamikaze Module III", "Vészhelyzetben 75 000 sebzést okozó robbanást indít 450 egységes sugarú körben."));
+            _abilities.Add(PetGearTypeModule.COMBO_SHIP_REPAIR, new PetAbility(PetGearTypeModule.COMBO_SHIP_REPAIR, "C-SR3 — Ship Repair Module III", "Aktiválás után 5 másodpercig másodpercenként 25 000 életerőt állít helyre a hajón."));
+            _abilities.Add(PetGearTypeModule.COMBO_GUARD, new PetAbility(PetGearTypeModule.COMBO_GUARD, "C-MG3 — Modular Guard System III", "Azonnali pajzserősítést biztosító védelmi mód."));
+            _abilities.Add(PetGearTypeModule.SHIELD_SACRIFICE, new PetAbility(PetGearTypeModule.SHIELD_SACRIFICE, "G-SF3 — Shield Sacrifice Module III", "Pajzsenergiát továbbít szövetségesnek, majd a P.E.T. leáll."));
+            _abilities.Add(PetGearTypeModule.RESOURCE_SYSTEM_LOCATOR, new PetAbility(PetGearTypeModule.RESOURCE_SYSTEM_LOCATOR, "G-RL3 — Resource Locator Module III", "Rendszerszintű nyersanyag bemérés 5000 egységig."));
+            _abilities.Add(PetGearTypeModule.HP_LINK, new PetAbility(PetGearTypeModule.HP_LINK, "G-HPL3 — HP Link P.E.T. Gear II", "30 másodpercig az űrhajót érő életerő-sebzést a P.E.T.-re terheli át."));
         }
 
         public override byte[] GetShipCreateCommand() { return null; }

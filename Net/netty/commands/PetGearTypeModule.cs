@@ -25,6 +25,10 @@ namespace Ow.Net.netty.commands
         public const short COMBO_SHIP_REPAIR = 11;
         public const short COMBO_GUARD = 12;
         public const short ADMIN = 13;
+        public const short SHIELD_SACRIFICE = 14;
+        public const short TRADE_MODULE = 15;
+        public const short RESOURCE_SYSTEM_LOCATOR = 16;
+        public const short HP_LINK = 17;
 
         public short typeValue = 0;
 
