@@ -1,5 +1,6 @@
 ﻿using Ow.Game.Events;
 using Ow.Game.Movements;
+using Ow.Game.Objects;
 using Ow.Game.Objects.Players.Managers;
 using Ow.Managers;
 using Ow.Net.netty.commands;
@@ -16,15 +17,17 @@ namespace Ow.Game.Objects.Mines
     {
         public ACM_01(Player player, Spacemap spacemap, Position position, int mineTypeId) : base(player, spacemap, position, mineTypeId) { }
 
-        public override void Action(Player player)
+        public override void Action(Attackable target)
         {
-            var damage = Maths.GetPercentage(player.CurrentHitPoints, 20);
-            damage += Maths.GetPercentage(damage, player.GetSkillPercentage("Detonation"));
+            var damage = Maths.GetPercentage(target.CurrentHitPoints, 20);
+
+            if (target is Player playerTarget)
+                damage += Maths.GetPercentage(damage, playerTarget.GetSkillPercentage("Detonation"));
 
             if (Lance)
                 damage += Maths.GetPercentage(damage, 50);
 
-            Player.AttackManager.Damage(Player, player, DamageType.MINE, damage, 0, false);
+            Player.AttackManager.Damage(Player, target, DamageType.MINE, damage, 0, false);
         }
     }
 }

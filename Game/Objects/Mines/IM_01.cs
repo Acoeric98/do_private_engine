@@ -1,4 +1,5 @@
 ﻿using Ow.Game.Movements;
+using Ow.Game.Objects;
 using Ow.Managers;
 using Ow.Net.netty.commands;
 using Ow.Utils;
@@ -14,6 +15,6 @@ namespace Ow.Game.Objects.Mines
     {
         public IM_01(Player player, Spacemap spacemap, Position position, int mineTypeId) : base(player, spacemap, position, mineTypeId) { }
 
-        public override void Action(Player player) { }
+        public override void Action(Attackable target) { }
     }
 }

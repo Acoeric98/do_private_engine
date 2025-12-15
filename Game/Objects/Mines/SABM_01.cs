@@ -1,5 +1,6 @@
 ﻿using Ow.Game.Events;
 using Ow.Game.Movements;
+using Ow.Game.Objects;
 using Ow.Game.Objects.Players.Managers;
 using Ow.Managers;
 using Ow.Net.netty.commands;
@@ -16,12 +17,14 @@ namespace Ow.Game.Objects.Mines
     {
         public SABM_01(Player player, Spacemap spacemap, Position position, int mineTypeId) : base(player, spacemap, position, mineTypeId) { }
 
-        public override void Action(Player player)
+        public override void Action(Attackable target)
         {
-            var damage = Maths.GetPercentage(player.CurrentShieldPoints, 50);
-            damage += Maths.GetPercentage(damage, player.GetSkillPercentage("Detonation"));
+            var damage = Maths.GetPercentage(target.CurrentShieldPoints, 50);
 
-            AttackManager.Damage(Player, player as Player, DamageType.MINE, damage, false, false, true, false);
+            if (target is Player playerTarget)
+                damage += Maths.GetPercentage(damage, playerTarget.GetSkillPercentage("Detonation"));
+
+            AttackManager.Damage(Player, target, DamageType.MINE, damage, false, false, true, false);
         }
     }
 }
