@@ -44,16 +44,26 @@ namespace Ow.Game.Objects
             Program.TickManager.AddTick(this);
         }
 
-        public abstract void Action(Player player);
+        public abstract void Action(Attackable target);
 
         public void Explode()
         {
             foreach (var character in Spacemap.Characters.Values)
             {
-                if (character is Player player && player.Position.DistanceTo(Position) < ExplodeRange)
+                if (character.Position.DistanceTo(Position) >= ExplodeRange) continue;
+
+                if (character is Player player)
                 {
                     if (Player == player || !Duel.InDuel(player) || (Duel.InDuel(player) && player.Storage.Duel?.GetOpponent(player) == Player))
                         Action(player);
+                }
+                else if (character is Pet pet)
+                {
+                    var owner = pet.Owner;
+                    if (owner == null) continue;
+
+                    if (Player == owner || !Duel.InDuel(owner) || (Duel.InDuel(owner) && owner.Storage.Duel?.GetOpponent(owner) == Player))
+                        Action(pet);
                 }
             }
         }
