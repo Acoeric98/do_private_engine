@@ -593,7 +593,9 @@ namespace Ow.Game.Objects.Players.Managers
             if (attacker.Invincible && damageType != DamageType.RADIATION)
                 attacker.Storage.DeactiveInvincibilityEffect();
 
-            if (target is Player targetPlayer)
+            var targetPlayer = target as Player;
+
+            if (targetPlayer != null)
             {
                 if (attacker is Player playerAttacker)
                     ApplyTargetMarkerBonus(playerAttacker, targetPlayer, ref damage);
@@ -619,7 +621,7 @@ namespace Ow.Game.Objects.Players.Managers
 
             target.LastCombatTime = DateTime.Now;
 
-            if (target is Player targetPlayer && attacker != null && targetPlayer.Pet != null)
+            if (targetPlayer?.Pet != null && attacker != null)
                 targetPlayer.Pet.NotifyOwnerAttacked(attacker);
 
             if (toHp && toDestroy && (damage >= target.CurrentHitPoints || target.CurrentHitPoints <= 0))
