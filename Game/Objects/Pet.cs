@@ -472,7 +472,8 @@ namespace Ow.Game.Objects
             Owner.SendCommand(PetStatusCommand.write(Id, 15, 27000000, 27000000, CurrentHitPoints, MaxHitPoints, CurrentShieldPoints, MaxShieldPoints, 50000, 50000, Speed, Name));
             foreach (var ability in _abilities.Values)
             {
-                Owner.SendCommand(PetGearAddCommand.write(new PetGearTypeModule(ability.GearType), 3, 0, true));
+                // Ensure the client treats every gear as owned/available by reporting at least one copy.
+                Owner.SendCommand(PetGearAddCommand.write(new PetGearTypeModule(ability.GearType), 3, 1, true));
             }
             SwitchGear(gearId);
         }
