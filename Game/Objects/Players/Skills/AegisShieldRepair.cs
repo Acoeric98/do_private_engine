@@ -58,7 +58,7 @@ namespace Ow.Game.Objects.Players.Skills
                 {
                     short relationType = Player.Clan.Id != 0 && target.Clan.Id != 0 ? Player.Clan.GetRelation(target.Clan) : (short)0;
 
-                    if ((Player.Group != null && Player.Group.Members.ContainsKey(target.Id)) || relationType != ClanRelationModule.AT_WAR)
+                    if ((Player.Group != null && Player.Group.Members.ContainsKey(target.Id)) || relationType == ClanRelationModule.ALLIED)
                         targetIds.Add(target.Id);
                 }
 

@@ -1,4 +1,5 @@
 ﻿using Ow.Game.Objects.Players.Managers;
+using Ow.Game;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,7 +14,9 @@ namespace Ow.Game.Objects.Players
 
         public int CurrentLoad = 0;
 
-        public int MaxLoad = 5;
+        public int MaxLoad => Player.Ship.Id == Ship.CITADEL ||
+                               Player.Ship.Id == Ship.CITADEL_ELITE ||
+                               Player.Ship.Id == Ship.CITADEL_VETERAN ? 10 : 5;
 
         public string LoadLootId { get; set; }
 
