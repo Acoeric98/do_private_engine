@@ -40,6 +40,13 @@ namespace Ow.Game.Objects
         public bool ResourceSystemLocatorActive = false;
         public bool HpLinkActive = false;
         public short GearId = PetGearTypeModule.PASSIVE;
+        private Character _kamikazeTarget;
+        private DateTime _kamikazeDetonationTime = DateTime.MinValue;
+        private bool _kamikazeArming;
+        private Collectable _activeCollectableTarget;
+        private Character _shieldSacrificeTarget;
+        private DateTime _shieldSacrificeDetonationTime = DateTime.MinValue;
+        private bool _shieldSacrificeArming;
 
         private class PetAbility
         {
@@ -88,30 +95,51 @@ namespace Ow.Game.Objects
             {
                 CheckShieldPointsRepair();
                 CheckGuardMode();
-                CheckAutoLoot();
+                var collecting = CheckAutoLoot();
                 CheckComboShipRepair();
                 CheckPetRepair();
                 CheckHpLink();
                 CheckShieldSacrifice();
                 CheckKamikaze();
                 CheckLocators();
-                Follow(Owner);
+                if (!collecting && !IsAbilityNavigating())
+                    Follow(Owner);
                 Movement.ActualPosition(this);
             }
         }
 
-        public void CheckAutoLoot()
+        public bool CheckAutoLoot()
         {
-            if (!AutoLootActive && !ResourceCollectorActive) return;
+            if (!AutoLootActive && !ResourceCollectorActive)
+            {
+                _activeCollectableTarget = null;
+                return false;
+            }
 
             var range = ResourceCollectorActive ? 3000 : 700;
-            var collectables = Spacemap.Objects.Values.OfType<Collectable>()
-                .Where(x => !x.Disposed && x.Character == null && Position.DistanceTo(x.Position) <= range)
-                .OrderBy(x => Position.DistanceTo(x.Position))
-                .FirstOrDefault();
+            if (_activeCollectableTarget == null || _activeCollectableTarget.Disposed || _activeCollectableTarget.Character != null || Position.DistanceTo(_activeCollectableTarget.Position) > range)
+            {
+                _activeCollectableTarget = Spacemap.Objects.Values.OfType<Collectable>()
+                    .Where(x => !x.Disposed && x.Character == null && Position.DistanceTo(x.Position) <= range)
+                    .OrderBy(x => Position.DistanceTo(x.Position))
+                    .FirstOrDefault();
+            }
 
-            if (collectables != null)
-                collectables.Collect(this);
+            if (_activeCollectableTarget == null) return false;
+
+            var distance = Position.DistanceTo(_activeCollectableTarget.Position);
+            if (distance <= 200)
+            {
+                _activeCollectableTarget.Collect(this);
+                _activeCollectableTarget = null;
+            }
+            else
+            {
+                Movement.Move(this, _activeCollectableTarget.Position);
+                return true;
+            }
+
+            return Collecting;
         }
 
         public DateTime lastShieldRepairTime = new DateTime();
@@ -317,29 +345,67 @@ namespace Ow.Game.Objects
 
         private void CheckKamikaze()
         {
-            if (!KamikazeActive) return;
+            if (!KamikazeActive)
+            {
+                ResetKamikazeState();
+                return;
+            }
 
             var ownerCritical = Owner.CurrentHitPoints < (Owner.MaxHitPoints * 0.2);
             var petCritical = CurrentHitPoints < (MaxHitPoints * 0.2);
 
-            if (!ownerCritical && !petCritical) return;
-
-            foreach (var character in Owner.InRangeCharacters.Values)
+            if (!ownerCritical && !petCritical)
             {
-                if (character == Owner || character == this) continue;
-
-                if (Position.DistanceTo(character.Position) <= 450)
-                {
-                    var damage = 75000;
-                    character.CurrentHitPoints -= Math.Min(damage, character.CurrentHitPoints);
-                    character.UpdateStatus();
-
-                    if (character.CurrentHitPoints <= 0)
-                        character.Destroy(this, DestructionType.PET);
-                }
+                ResetKamikazeState();
+                return;
             }
 
-            Deactivate(true, true);
+            if (_kamikazeTarget == null || _kamikazeTarget.Destroyed || _kamikazeTarget.Spacemap != Spacemap)
+            {
+                _kamikazeTarget = Owner.SelectedCharacter ?? Owner.InRangeCharacters.Values.FirstOrDefault(x => x != Owner && x != this);
+                _kamikazeArming = false;
+                _kamikazeDetonationTime = DateTime.MinValue;
+            }
+
+            if (_kamikazeTarget == null) return;
+
+            var distance = Position.DistanceTo(_kamikazeTarget.Position);
+            if (distance > 450)
+            {
+                _kamikazeArming = false;
+                _kamikazeDetonationTime = DateTime.MinValue;
+                Movement.Move(this, _kamikazeTarget.Position);
+                return;
+            }
+
+            if (!_kamikazeArming)
+            {
+                StopMovement();
+                _kamikazeArming = true;
+                _kamikazeDetonationTime = DateTime.Now.AddSeconds(2);
+                return;
+            }
+
+            if (_kamikazeDetonationTime <= DateTime.Now)
+            {
+                foreach (var character in Owner.InRangeCharacters.Values)
+                {
+                    if (character == Owner || character == this) continue;
+
+                    if (Position.DistanceTo(character.Position) <= 450)
+                    {
+                        var damage = 75000;
+                        character.CurrentHitPoints -= Math.Min(damage, character.CurrentHitPoints);
+                        character.UpdateStatus();
+
+                        if (character.CurrentHitPoints <= 0)
+                            character.Destroy(this, DestructionType.PET);
+                    }
+                }
+
+                Deactivate(true, true);
+                ResetKamikazeState();
+            }
         }
 
         private void CheckLocators()
@@ -366,21 +432,52 @@ namespace Ow.Game.Objects
 
         private void CheckShieldSacrifice()
         {
-            if (!ShieldSacrificeActive) return;
+            if (!ShieldSacrificeActive)
+            {
+                ResetShieldSacrificeState();
+                return;
+            }
 
-            if (Owner.SelectedCharacter is Player targetPlayer && targetPlayer.Clan == Owner.Clan && Position.DistanceTo(targetPlayer.Position) <= 450)
+            if (_shieldSacrificeTarget == null || _shieldSacrificeTarget.Destroyed || _shieldSacrificeTarget.Spacemap != Spacemap)
+            {
+                _shieldSacrificeTarget = Owner.SelectedCharacter is Player player && player.Clan == Owner.Clan ? player : null;
+                _shieldSacrificeArming = false;
+                _shieldSacrificeDetonationTime = DateTime.MinValue;
+            }
+
+            if (_shieldSacrificeTarget == null) return;
+
+            var distance = Position.DistanceTo(_shieldSacrificeTarget.Position);
+            if (distance > 450)
+            {
+                _shieldSacrificeArming = false;
+                _shieldSacrificeDetonationTime = DateTime.MinValue;
+                Movement.Move(this, _shieldSacrificeTarget.Position);
+                return;
+            }
+
+            if (!_shieldSacrificeArming)
+            {
+                StopMovement();
+                _shieldSacrificeArming = true;
+                _shieldSacrificeDetonationTime = DateTime.Now.AddSeconds(2);
+                return;
+            }
+
+            if (_shieldSacrificeDetonationTime <= DateTime.Now)
             {
                 var transferredShield = Owner.CurrentShieldPoints;
                 if (transferredShield > 0)
                 {
-                    targetPlayer.CurrentShieldPoints = Math.Min(targetPlayer.MaxShieldPoints, targetPlayer.CurrentShieldPoints + transferredShield);
+                    _shieldSacrificeTarget.CurrentShieldPoints = Math.Min(_shieldSacrificeTarget.MaxShieldPoints, _shieldSacrificeTarget.CurrentShieldPoints + transferredShield);
                     Owner.CurrentShieldPoints = 0;
-                    targetPlayer.UpdateStatus();
+                    _shieldSacrificeTarget.UpdateStatus();
                     Owner.UpdateStatus();
                 }
 
                 Deactivate(true, true);
                 ShieldSacrificeActive = false;
+                ResetShieldSacrificeState();
             }
         }
 
@@ -426,6 +523,7 @@ namespace Ow.Game.Objects
                     Owner.ChangeData(DataType.URIDIUM, cost, ChangeType.DECREASE);
                     Owner.SendCommand(PetRepairCompleteCommand.write());
                     Owner.Settings.InGameSettings.petDestroyed = false;
+                    GearId = PetGearTypeModule.PASSIVE;
                     QueryManager.SavePlayer.Settings(Owner, "inGameSettings", Owner.Settings.InGameSettings);
                 } else Owner.SendPacket("0|A|STM|ttip_pet_repair_disabled_through_money");
             }
@@ -582,6 +680,40 @@ namespace Ow.Game.Objects
             ResourceSystemLocatorActive = false;
             HpLinkActive = false;
             _shieldSacrificeTriggered = false;
+            ResetKamikazeState();
+            ResetShieldSacrificeState();
+            _activeCollectableTarget = null;
+        }
+
+        private bool IsAbilityNavigating()
+        {
+            return (_activeCollectableTarget != null && (AutoLootActive || ResourceCollectorActive))
+                   || _kamikazeTarget != null
+                   || _shieldSacrificeTarget != null;
+        }
+
+        private void StopMovement()
+        {
+            Moving = false;
+            Destination = Position;
+            OldPosition = Position;
+            Direction = Position;
+            MovementStartTime = DateTime.Now;
+            MovementTime = 0;
+        }
+
+        private void ResetKamikazeState()
+        {
+            _kamikazeTarget = null;
+            _kamikazeDetonationTime = DateTime.MinValue;
+            _kamikazeArming = false;
+        }
+
+        private void ResetShieldSacrificeState()
+        {
+            _shieldSacrificeTarget = null;
+            _shieldSacrificeDetonationTime = DateTime.MinValue;
+            _shieldSacrificeArming = false;
         }
 
         private void InitializeAbilities()
