@@ -367,7 +367,12 @@ namespace Ow.Game.Objects
 
             if (_kamikazeTarget == null || _kamikazeTarget.Destroyed || _kamikazeTarget.Spacemap != Spacemap)
             {
-                _kamikazeTarget = Owner.SelectedCharacter ?? Owner.InRangeCharacters.Values.FirstOrDefault(x => x != Owner && x != this);
+                var selectedTarget = Owner.SelectedCharacter;
+
+                if (selectedTarget == this || selectedTarget == Owner)
+                    selectedTarget = null;
+
+                _kamikazeTarget = selectedTarget ?? Owner.InRangeCharacters.Values.FirstOrDefault(x => x != Owner && x != this);
                 _kamikazeArming = false;
                 _kamikazeDetonationTime = DateTime.MinValue;
             }
@@ -404,7 +409,7 @@ namespace Ow.Game.Objects
                         character.UpdateStatus();
 
                         if (character.CurrentHitPoints <= 0)
-                            character.Destroy(this, DestructionType.PET);
+                            character.Destroy(Owner, DestructionType.PLAYER);
                     }
                 }
 
@@ -748,9 +753,9 @@ namespace Ow.Game.Objects
             _abilities.Add(PetGearTypeModule.KAMIKAZE, new PetAbility(PetGearTypeModule.KAMIKAZE, "G-KK3 — Kamikaze Module III", "Vészhelyzetben 75 000 sebzést okozó robbanást indít 450 egységes sugarú körben."));
             _abilities.Add(PetGearTypeModule.COMBO_SHIP_REPAIR, new PetAbility(PetGearTypeModule.COMBO_SHIP_REPAIR, "C-SR3 — Ship Repair Module III", "Aktiválás után 5 másodpercig másodpercenként 25 000 életerőt állít helyre a hajón."));
             _abilities.Add(PetGearTypeModule.COMBO_GUARD, new PetAbility(PetGearTypeModule.COMBO_GUARD, "C-MG3 — Modular Guard System III", "Azonnali pajzserősítést biztosító védelmi mód."));
-            _abilities.Add(PetGearTypeModule.SHIELD_SACRIFICE, new PetAbility(PetGearTypeModule.SHIELD_SACRIFICE, "G-SF3 — Shield Sacrifice Module III", "Pajzsenergiát továbbít szövetségesnek, majd a P.E.T. leáll."));
+            _abilities.Add(PetGearTypeModule.SHIELD_SACRIFICE, new PetAbility(PetGearTypeModule.SHIELD_SACRIFICE, "G-SF1 — Shield Sacrifice Module I", "Pajzsenergiát továbbít szövetségesnek, majd a P.E.T. leáll."));
             _abilities.Add(PetGearTypeModule.RESOURCE_SYSTEM_LOCATOR, new PetAbility(PetGearTypeModule.RESOURCE_SYSTEM_LOCATOR, "G-RL3 — Resource Locator Module III", "Rendszerszintű nyersanyag bemérés 5000 egységig."));
-            _abilities.Add(PetGearTypeModule.HP_LINK, new PetAbility(PetGearTypeModule.HP_LINK, "G-HPL3 — HP Link P.E.T. Gear II", "20 másodpercig az űrhajót érő életerő-sebzést a P.E.T.-re terheli át. Újratöltés: 240 másodperc."));
+            _abilities.Add(PetGearTypeModule.HP_LINK, new PetAbility(PetGearTypeModule.HP_LINK, "G-HPL — HP Link P.E.T. Gear", "20 másodpercig az űrhajót érő életerő-sebzést a P.E.T.-re terheli át. Újratöltés: 240 másodperc."));
         }
 
         public override byte[] GetShipCreateCommand() { return null; }
