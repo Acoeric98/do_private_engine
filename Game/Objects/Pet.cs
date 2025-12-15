@@ -27,7 +27,32 @@ namespace Ow.Game.Objects
 
         public bool Activated = false;
         public bool GuardModeActive = false;
+        public bool AutoLootActive = false;
+        public bool ResourceCollectorActive = false;
+        public bool EnemyLocatorActive = false;
+        public bool ResourceLocatorActive = false;
+        public bool TradePodActive = false;
+        public bool RepairActive = false;
+        public bool KamikazeActive = false;
+        public bool ComboShipRepairActive = false;
+        public bool ComboGuardActive = false;
         public short GearId = PetGearTypeModule.PASSIVE;
+
+        private class PetAbility
+        {
+            public short GearType { get; }
+            public string Name { get; }
+            public string Description { get; }
+
+            public PetAbility(short gearType, string name, string description)
+            {
+                GearType = gearType;
+                Name = name;
+                Description = description;
+            }
+        }
+
+        private readonly Dictionary<short, PetAbility> _abilities = new Dictionary<short, PetAbility>();
 
         public Pet(Player player) : base(Randoms.CreateRandomID(), "P.E.T 15", player.FactionId, GameManager.GetShip(22), player.Position, player.Spacemap, player.Clan)
         {
@@ -40,6 +65,8 @@ namespace Ow.Game.Objects
             MaxHitPoints = 50000;
             MaxShieldPoints = 50000;
             CurrentShieldPoints = MaxShieldPoints;
+
+            InitializeAbilities();
         }
 
         public override void Tick()
@@ -254,8 +281,10 @@ namespace Ow.Game.Objects
         private void Initialization(short gearId = PetGearTypeModule.PASSIVE)
         {
             Owner.SendCommand(PetStatusCommand.write(Id, 15, 27000000, 27000000, CurrentHitPoints, MaxHitPoints, CurrentShieldPoints, MaxShieldPoints, 50000, 50000, Speed, Name));
-            Owner.SendCommand(PetGearAddCommand.write(new PetGearTypeModule(PetGearTypeModule.PASSIVE), 0, 0, true));
-            Owner.SendCommand(PetGearAddCommand.write(new PetGearTypeModule(PetGearTypeModule.GUARD), 0, 0, true));
+            foreach (var ability in _abilities.Values)
+            {
+                Owner.SendCommand(PetGearAddCommand.write(new PetGearTypeModule(ability.GearType), 3, 0, true));
+            }
             SwitchGear(gearId);
         }
 
@@ -277,6 +306,8 @@ namespace Ow.Game.Objects
             if (!Activated)
                 Activate();
 
+            ResetState();
+
             switch (gearId)
             {
                 case PetGearTypeModule.PASSIVE:
@@ -285,10 +316,66 @@ namespace Ow.Game.Objects
                 case PetGearTypeModule.GUARD:
                     GuardModeActive = true;
                     break;
+                case PetGearTypeModule.AUTO_LOOT:
+                    AutoLootActive = true;
+                    break;
+                case PetGearTypeModule.AUTO_RESOURCE_COLLECTION:
+                    ResourceCollectorActive = true;
+                    break;
+                case PetGearTypeModule.ENEMY_LOCATOR:
+                    EnemyLocatorActive = true;
+                    break;
+                case PetGearTypeModule.RESOURCE_LOCATOR:
+                    ResourceLocatorActive = true;
+                    break;
+                case PetGearTypeModule.TRADE_POD:
+                    TradePodActive = true;
+                    break;
+                case PetGearTypeModule.REPAIR_PET:
+                    RepairActive = true;
+                    break;
+                case PetGearTypeModule.KAMIKAZE:
+                    KamikazeActive = true;
+                    break;
+                case PetGearTypeModule.COMBO_SHIP_REPAIR:
+                    ComboShipRepairActive = true;
+                    break;
+                case PetGearTypeModule.COMBO_GUARD:
+                    ComboGuardActive = true;
+                    break;
             }
             GearId = gearId;
 
             Owner.SendCommand(PetGearSelectCommand.write(new PetGearTypeModule(gearId), new List<int>()));
+        }
+
+        private void ResetState()
+        {
+            GuardModeActive = false;
+            AutoLootActive = false;
+            ResourceCollectorActive = false;
+            EnemyLocatorActive = false;
+            ResourceLocatorActive = false;
+            TradePodActive = false;
+            RepairActive = false;
+            KamikazeActive = false;
+            ComboShipRepairActive = false;
+            ComboGuardActive = false;
+        }
+
+        private void InitializeAbilities()
+        {
+            _abilities.Add(PetGearTypeModule.PASSIVE, new PetAbility(PetGearTypeModule.PASSIVE, "Passzív", "A P.E.T. nem hajt végre aktív műveletet."));
+            _abilities.Add(PetGearTypeModule.GUARD, new PetAbility(PetGearTypeModule.GUARD, "Őr mód", "A P.E.T. megvédi a gazdáját és az őt támadó ellenségeket célozza."));
+            _abilities.Add(PetGearTypeModule.AUTO_LOOT, new PetAbility(PetGearTypeModule.AUTO_LOOT, "Automata gyűjtőberendezés", "Automatikusan összegyűjti a bónusz- és rakománydobozokat a közelben."));
+            _abilities.Add(PetGearTypeModule.AUTO_RESOURCE_COLLECTION, new PetAbility(PetGearTypeModule.AUTO_RESOURCE_COLLECTION, "Nyersanyaggyűjtő", "A közelben lévő érceket gyűjti be a P.E.T. számára."));
+            _abilities.Add(PetGearTypeModule.ENEMY_LOCATOR, new PetAbility(PetGearTypeModule.ENEMY_LOCATOR, "Ellenségbemérő", "Felderíti a térképen tartózkodó NPC-ket és megjeleníti őket a radaron."));
+            _abilities.Add(PetGearTypeModule.RESOURCE_LOCATOR, new PetAbility(PetGearTypeModule.RESOURCE_LOCATOR, "Nyersanyagbemérő", "Megmutatja a környéken található nyersanyag-lelőhelyeket."));
+            _abilities.Add(PetGearTypeModule.TRADE_POD, new PetAbility(PetGearTypeModule.TRADE_POD, "Kereskedelmi berendezés", "Lehetővé teszi a rakomány azonnali eladását a P.E.T. segítségével."));
+            _abilities.Add(PetGearTypeModule.REPAIR_PET, new PetAbility(PetGearTypeModule.REPAIR_PET, "Életjavítás berendezés", "Szintlépések után növeli a P.E.T. maximális életerejét."));
+            _abilities.Add(PetGearTypeModule.KAMIKAZE, new PetAbility(PetGearTypeModule.KAMIKAZE, "Önmegsemmisítő", "Alacsony HP mellett rárepül az ellenségre és robbanással sebez."));
+            _abilities.Add(PetGearTypeModule.COMBO_SHIP_REPAIR, new PetAbility(PetGearTypeModule.COMBO_SHIP_REPAIR, "Összetett javító", "Repülés közben gyógyítja a hajót és extra védelmet ad a P.E.T.-nek."));
+            _abilities.Add(PetGearTypeModule.COMBO_GUARD, new PetAbility(PetGearTypeModule.COMBO_GUARD, "Összetett védelmi", "Azonnali pajzsot és megnövelt védekezést biztosít a P.E.T. számára."));
         }
 
         public override byte[] GetShipCreateCommand() { return null; }
