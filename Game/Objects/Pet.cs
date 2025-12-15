@@ -357,8 +357,7 @@ namespace Ow.Game.Objects
             if (ResourceLocatorActive || ResourceSystemLocatorActive)
             {
                 var range = ResourceSystemLocatorActive ? 5000 : 2000;
-                var resources = Spacemap.Objects.Values.OfType<Collectable>().Count(x => Position.DistanceTo(x.Position) <= rang
-e);
+                var resources = Spacemap.Objects.Values.OfType<Collectable>().Count(x => Position.DistanceTo(x.Position) <= range);
                 Owner.SendPacket($"0|A|STD|resource_locator:{resources}");
             }
 
