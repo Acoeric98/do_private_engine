@@ -89,7 +89,11 @@ namespace Ow.Game.Objects.Players.Skills
                     {
                         if (character is Player player)
                         {
-                            if (player == Player || (Player.Group != null && Player.Group.Members.ContainsKey(player.Id)))
+                            short relationType = Player.Clan.Id != 0 && player.Clan.Id != 0 ? Player.Clan.GetRelation(player.Clan) : (short)0;
+
+                            if (player == Player ||
+                                (Player.Group != null && Player.Group.Members.ContainsKey(player.Id)) ||
+                                relationType == ClanRelationModule.ALLIED)
                             {
                                 if (player.Position.DistanceTo(Pod.Position) < 350)
                                     player.Heal(20000, Player.Id);
