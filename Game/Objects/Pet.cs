@@ -269,6 +269,11 @@ namespace Ow.Game.Objects
             if (_lastComboShipRepairTick.AddSeconds(1) <= DateTime.Now)
             {
                 var healAmount = 25000;
+                if (Owner.LastCombatTime.AddSeconds(1) >= DateTime.Now)
+                {
+                    _lastComboShipRepairTick = DateTime.Now;
+                    return;
+                }
                 var missingHp = Owner.MaxHitPoints - Owner.CurrentHitPoints;
                 if (missingHp > 0)
                 {
@@ -315,7 +320,7 @@ namespace Ow.Game.Objects
             if (_hpLinkEndTime <= DateTime.Now)
             {
                 HpLinkActive = false;
-                _hpLinkCooldownEndTime = DateTime.Now.AddMinutes(3);
+                _hpLinkCooldownEndTime = DateTime.Now.AddSeconds(240);
                 Owner.SendPacket("0|A|STM|msg_pet_hp_link_deactivated");
                 return;
             }
@@ -621,6 +626,8 @@ namespace Ow.Game.Objects
                     break;
                 case PetGearTypeModule.REPAIR_PET:
                     RepairActive = true;
+                    _petRepairEndTime = DateTime.Now.AddSeconds(15);
+                    _lastPetRepairTick = DateTime.MinValue;
                     break;
                 case PetGearTypeModule.KAMIKAZE:
                     KamikazeActive = true;
@@ -653,7 +660,7 @@ namespace Ow.Game.Objects
                     if (_hpLinkCooldownEndTime <= DateTime.Now)
                     {
                         HpLinkActive = true;
-                        _hpLinkEndTime = DateTime.Now.AddSeconds(30);
+                        _hpLinkEndTime = DateTime.Now.AddSeconds(20);
                         _lastOwnerHitpoints = Owner.CurrentHitPoints;
                         Owner.SendPacket("0|A|STM|msg_pet_hp_link_activated");
                     }
@@ -709,6 +716,18 @@ namespace Ow.Game.Objects
             _kamikazeArming = false;
         }
 
+        public void NotifyOwnerAttacked(Character attacker)
+        {
+            if (!KamikazeActive || attacker == null || attacker.Destroyed) return;
+
+            if (_kamikazeTarget == null)
+            {
+                _kamikazeTarget = attacker;
+                _kamikazeArming = false;
+                _kamikazeDetonationTime = DateTime.MinValue;
+            }
+        }
+
         private void ResetShieldSacrificeState()
         {
             _shieldSacrificeTarget = null;
@@ -731,7 +750,7 @@ namespace Ow.Game.Objects
             _abilities.Add(PetGearTypeModule.COMBO_GUARD, new PetAbility(PetGearTypeModule.COMBO_GUARD, "C-MG3 — Modular Guard System III", "Azonnali pajzserősítést biztosító védelmi mód."));
             _abilities.Add(PetGearTypeModule.SHIELD_SACRIFICE, new PetAbility(PetGearTypeModule.SHIELD_SACRIFICE, "G-SF3 — Shield Sacrifice Module III", "Pajzsenergiát továbbít szövetségesnek, majd a P.E.T. leáll."));
             _abilities.Add(PetGearTypeModule.RESOURCE_SYSTEM_LOCATOR, new PetAbility(PetGearTypeModule.RESOURCE_SYSTEM_LOCATOR, "G-RL3 — Resource Locator Module III", "Rendszerszintű nyersanyag bemérés 5000 egységig."));
-            _abilities.Add(PetGearTypeModule.HP_LINK, new PetAbility(PetGearTypeModule.HP_LINK, "G-HPL3 — HP Link P.E.T. Gear II", "30 másodpercig az űrhajót érő életerő-sebzést a P.E.T.-re terheli át."));
+            _abilities.Add(PetGearTypeModule.HP_LINK, new PetAbility(PetGearTypeModule.HP_LINK, "G-HPL3 — HP Link P.E.T. Gear II", "20 másodpercig az űrhajót érő életerő-sebzést a P.E.T.-re terheli át. Újratöltés: 240 másodperc."));
         }
 
         public override byte[] GetShipCreateCommand() { return null; }
