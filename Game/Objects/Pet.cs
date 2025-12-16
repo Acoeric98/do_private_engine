@@ -15,6 +15,8 @@ namespace Ow.Game.Objects
 {
     class Pet : Character
     {
+        private const int KAMIKAZE_COOLDOWN_SECONDS = 10;
+
         private static readonly HashSet<short> DisabledGears = new HashSet<short>
         {
             PetGearTypeModule.AUTO_RESOURCE_COLLECTION,
@@ -57,6 +59,7 @@ namespace Ow.Game.Objects
         private Character _kamikazeTarget;
         private DateTime _kamikazeDetonationTime = DateTime.MinValue;
         private bool _kamikazeArming;
+        private DateTime _kamikazeCooldownEndTime = DateTime.MinValue;
         private Collectable _activeCollectableTarget;
         private Character _shieldSacrificeTarget;
         private DateTime _shieldSacrificeDetonationTime = DateTime.MinValue;
@@ -398,6 +401,12 @@ namespace Ow.Game.Objects
                 return;
             }
 
+            if (_kamikazeCooldownEndTime > DateTime.Now)
+            {
+                ResetKamikazeState();
+                return;
+            }
+
             var ownerCritical = Owner.CurrentHitPoints < (Owner.MaxHitPoints * 0.2);
             var petCritical = CurrentHitPoints < (MaxHitPoints * 0.2);
 
@@ -455,6 +464,7 @@ namespace Ow.Game.Objects
                     }
                 }
 
+                _kamikazeCooldownEndTime = DateTime.Now.AddSeconds(KAMIKAZE_COOLDOWN_SECONDS);
                 Deactivate(true, true);
                 ResetKamikazeState();
             }
