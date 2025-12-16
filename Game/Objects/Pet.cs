@@ -15,7 +15,7 @@ namespace Ow.Game.Objects
 {
     class Pet : Character
     {
-        private const int KAMIKAZE_COOLDOWN_SECONDS = 10;
+        private const int KAMIKAZE_COOLDOWN_SECONDS = 30;
 
         private static readonly HashSet<short> DisabledGears = new HashSet<short>
         {
