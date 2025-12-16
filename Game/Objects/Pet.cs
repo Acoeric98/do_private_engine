@@ -25,6 +25,8 @@ namespace Ow.Game.Objects
             PetGearTypeModule.TRADE_MODULE,
             PetGearTypeModule.HP_LINK,
             PetGearTypeModule.SHIELD_SACRIFICE
+            PetGearTypeModule.COMBO_SHIP_REPAIR
+            PetGearTypeModule.COMBO_GUARD
         };
 
         public Player Owner { get; set; }
