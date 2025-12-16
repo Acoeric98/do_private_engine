@@ -17,6 +17,8 @@ namespace Ow.Game.Objects.Players.Managers
         public const String AUTO_HELLSTROM_CPU = "equipment_extra_cpu_rllb-x";
         public const String ROCKET_LAUNCHER = "equipment_weapon_rocketlauncher_hst-2";
         public const String GALAXY_JUMP_CPU = "equipment_extra_cpu_jp-02";
+        public const String ROK_T01_CPU = "equipment_extra_cpu_rok-t01";
+        public const String ANTI_Z1_CPU = "equipment_extra_cpu_anti-z1";
 
         public int CloakCooldownTime => Player.Premium ? 10000 : 20000;
         private const int CLOAK_PRICE = 256;

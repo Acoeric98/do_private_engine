@@ -369,7 +369,7 @@ namespace Ow.Game.Objects.Players.Managers
         public static string[] RocketsCategory =
         {
                 "ammunition_rocket_r-310", "ammunition_rocket_plt-2026", "ammunition_rocket_plt-2021",
-                "ammunition_rocket_plt-3030", "ammunition_specialammo_dcr-250", "ammunition_specialammo_r-ic3", "ammunition_specialammo_wiz-x",
+                "ammunition_rocket_plt-3030", AmmunitionManager.PIB_100, "ammunition_specialammo_dcr-250", "ammunition_specialammo_r-ic3", "ammunition_specialammo_wiz-x",
                 "ammunition_specialammo_pld-8"
                // , "ammunition_rocket_bdr-1211"
         };
@@ -396,12 +396,12 @@ namespace Ow.Game.Objects.Players.Managers
         public static string[] MinesCategory =
         {
                 "ammunition_mine_acm-01", "ammunition_mine_empm-01", "ammunition_mine_sabm-01",
-                "ammunition_mine_ddm-01", "ammunition_mine_slm-01"//, "ammunition_mine_im-01"
+                "ammunition_mine_ddm-01", "ammunition_mine_slm-01", AmmunitionManager.IM_01
         };
 
         public static string[] CpusCategory =
         {
-            "equipment_extra_cpu_cl04k-xl", "equipment_extra_cpu_arol-x", "equipment_extra_cpu_rllb-x"
+            "equipment_extra_cpu_cl04k-xl", "equipment_extra_cpu_arol-x", "equipment_extra_cpu_rllb-x", CpuManager.ROK_T01_CPU, CpuManager.ANTI_Z1_CPU
               /**  "equipment_extra_cpu_aim-01", "equipment_extra_cpu_aim-02", "equipment_extra_cpu_ajp-01",
                 "equipment_extra_cpu_alb-x", "equipment_extra_cpu_anti-z1", "equipment_extra_cpu_anti-z1-xl",
                 "equipment_extra_cpu_arol-x", "equipment_extra_cpu_cl04k-m", "equipment_extra_cpu_cl04k-xl",
@@ -731,6 +731,7 @@ namespace Ow.Game.Objects.Players.Managers
                     case AmmunitionManager.PLT_2026:
                     case AmmunitionManager.PLT_2021:
                     case AmmunitionManager.PLT_3030:
+                    case AmmunitionManager.PIB_100:
                         maxTime = 1000;
                         break;
                     case AmmunitionManager.DCR_250:

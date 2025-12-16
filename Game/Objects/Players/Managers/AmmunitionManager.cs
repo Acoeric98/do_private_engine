@@ -24,6 +24,7 @@ namespace Ow.Game.Objects.Players.Managers
         public const string PLD_8 = "ammunition_specialammo_pld-8";
         public const string DCR_250 = "ammunition_specialammo_dcr-250";
         public const string WIZ_X = "ammunition_specialammo_wiz-x";
+        public const string PIB_100 = "ammunition_rocket_pib-100";
         public const string BDR_1211 = "ammunition_rocket_bdr-1211";
         public const string BDR_1212 = "ammunition_rocket_bdr-1212";
         public const string R_IC3 = "ammunition_specialammo_r-ic3";
