@@ -64,6 +64,11 @@ namespace Ow.Game.Objects
 
         private readonly Dictionary<short, PetAbility> _abilities = new Dictionary<short, PetAbility>();
 
+        private void RegisterAbility(short gearType, string name, string description)
+        {
+            _abilities[gearType] = new PetAbility(gearType, name, description);
+        }
+
         private DateTime _comboShipRepairEndTime = DateTime.MinValue;
         private DateTime _lastComboShipRepairTick = DateTime.MinValue;
         private DateTime _petRepairEndTime = DateTime.MinValue;
@@ -293,11 +298,6 @@ namespace Ow.Game.Objects
             if (_lastComboShipRepairTick.AddSeconds(1) <= DateTime.Now)
             {
                 var healAmount = 25000;
-                if (Owner.LastCombatTime.AddSeconds(1) >= DateTime.Now)
-                {
-                    _lastComboShipRepairTick = DateTime.Now;
-                    return;
-                }
                 var missingHp = Owner.MaxHitPoints - Owner.CurrentHitPoints;
                 if (missingHp > 0)
                 {
@@ -670,6 +670,8 @@ namespace Ow.Game.Objects
                 case PetGearTypeModule.COMBO_SHIP_REPAIR:
                     ComboShipRepairActive = true;
                     _comboShipRepairEndTime = DateTime.Now.AddSeconds(5);
+                    _lastComboShipRepairTick = DateTime.MinValue;
+                    Owner.SendPacket("0|A|STM|msg_pet_combo_ship_repair_activated");
                     break;
                 case PetGearTypeModule.COMBO_GUARD:
                     ComboGuardActive = true;
@@ -776,20 +778,20 @@ namespace Ow.Game.Objects
 
         private void InitializeAbilities()
         {
-            _abilities.Add(PetGearTypeModule.PASSIVE, new PetAbility(PetGearTypeModule.PASSIVE, "Passzív", "A P.E.T. nem hajt végre aktív műveletet."));
-            _abilities.Add(PetGearTypeModule.GUARD, new PetAbility(PetGearTypeModule.GUARD, "Őr mód", "A P.E.T. megvédi a gazdáját és az őt támadó ellenségeket célozza."));
-            _abilities.Add(PetGearTypeModule.AUTO_LOOT, new PetAbility(PetGearTypeModule.AUTO_LOOT, "G-AL3 — Auto Loot Module III", "Automatikusan felismeri és begyűjti a közelben található bónusz- és rakománydobozokat (700 egység)."));
-            _abilities.Add(PetGearTypeModule.AUTO_RESOURCE_COLLECTION, new PetAbility(PetGearTypeModule.AUTO_RESOURCE_COLLECTION, "G-AR3 — Resource Collector Module III", "Automatikus nyersanyaggyűjtés 3000 egységen belül."));
-            _abilities.Add(PetGearTypeModule.ENEMY_LOCATOR, new PetAbility(PetGearTypeModule.ENEMY_LOCATOR, "G-EL3 — Enemy Locator Module III", "Felderíti a rendszerben tartózkodó NPC-ket és kijelzi számukat."));
-            _abilities.Add(PetGearTypeModule.RESOURCE_LOCATOR, new PetAbility(PetGearTypeModule.RESOURCE_LOCATOR, "G-RL3 — Resource Locator Module III", "Megmutatja a környéken található nyersanyagokat."));
-            _abilities.Add(PetGearTypeModule.TRADE_POD, new PetAbility(PetGearTypeModule.TRADE_POD, "G-TRA3 — Trade Module III", "A rakomány azonnali eladása +30% bónusszal."));
-            _abilities.Add(PetGearTypeModule.REPAIR_PET, new PetAbility(PetGearTypeModule.REPAIR_PET, "G-REP3 — PET Repair Module III", "15 másodpercig másodpercenként 12 000 HP-val javítja a P.E.T.-et."));
-            _abilities.Add(PetGearTypeModule.KAMIKAZE, new PetAbility(PetGearTypeModule.KAMIKAZE, "G-KK3 — Kamikaze Module III", "Vészhelyzetben 75 000 sebzést okozó robbanást indít 450 egységes sugarú körben."));
-            _abilities.Add(PetGearTypeModule.COMBO_SHIP_REPAIR, new PetAbility(PetGearTypeModule.COMBO_SHIP_REPAIR, "C-SR3 — Ship Repair Module III", "Aktiválás után 5 másodpercig másodpercenként 25 000 életerőt állít helyre a hajón."));
-            _abilities.Add(PetGearTypeModule.COMBO_GUARD, new PetAbility(PetGearTypeModule.COMBO_GUARD, "C-MG3 — Modular Guard System III", "Azonnali pajzserősítést biztosító védelmi mód."));
-            _abilities.Add(PetGearTypeModule.SHIELD_SACRIFICE, new PetAbility(PetGearTypeModule.SHIELD_SACRIFICE, "G-SF1 — Shield Sacrifice Module I", "Pajzsenergiát továbbít szövetségesnek, majd a P.E.T. leáll."));
-            _abilities.Add(PetGearTypeModule.RESOURCE_SYSTEM_LOCATOR, new PetAbility(PetGearTypeModule.RESOURCE_SYSTEM_LOCATOR, "G-RL3 — Resource Locator Module III", "Rendszerszintű nyersanyag bemérés 5000 egységig."));
-            _abilities.Add(PetGearTypeModule.HP_LINK, new PetAbility(PetGearTypeModule.HP_LINK, "G-HPL — HP Link P.E.T. Gear", "20 másodpercig az űrhajót érő életerő-sebzést a P.E.T.-re terheli át. Újratöltés: 240 másodperc."));
+            RegisterAbility(PetGearTypeModule.PASSIVE, "Passzív", "A P.E.T. nem hajt végre aktív műveletet.");
+            RegisterAbility(PetGearTypeModule.GUARD, "Őr mód", "A P.E.T. megvédi a gazdáját és az őt támadó ellenségeket célozza.");
+            RegisterAbility(PetGearTypeModule.AUTO_LOOT, "G-AL3 — Auto Loot Module III", "Automatikusan felismeri és begyűjti a közelben található bónusz- és rakománydobozokat (700 egység).");
+            RegisterAbility(PetGearTypeModule.AUTO_RESOURCE_COLLECTION, "G-AR3 — Resource Collector Module III", "Automatikus nyersanyaggyűjtés 3000 egységen belül.");
+            RegisterAbility(PetGearTypeModule.ENEMY_LOCATOR, "G-EL3 — Enemy Locator Module III", "Felderíti a rendszerben tartózkodó NPC-ket és kijelzi számukat.");
+            RegisterAbility(PetGearTypeModule.RESOURCE_LOCATOR, "G-RL3 — Resource Locator Module III", "Megmutatja a környéken található nyersanyagokat.");
+            RegisterAbility(PetGearTypeModule.TRADE_POD, "G-TRA3 — Trade Module III", "A rakomány azonnali eladása +30% bónusszal.");
+            RegisterAbility(PetGearTypeModule.REPAIR_PET, "G-REP3 — PET Repair Module III", "15 másodpercig másodpercenként 12 000 HP-val javítja a P.E.T.-et.");
+            RegisterAbility(PetGearTypeModule.KAMIKAZE, "G-KK3 — Kamikaze Module III", "Vészhelyzetben 75 000 sebzést okozó robbanást indít 450 egységes sugarú körben.");
+            RegisterAbility(PetGearTypeModule.COMBO_SHIP_REPAIR, "C-SR3 — Ship Repair Module III", "Aktiválás után 5 másodpercig másodpercenként 25 000 életerőt állít helyre a hajón.");
+            RegisterAbility(PetGearTypeModule.COMBO_GUARD, "C-MG3 — Modular Guard System III", "Azonnali pajzserősítést biztosító védelmi mód.");
+            RegisterAbility(PetGearTypeModule.SHIELD_SACRIFICE, "G-SF1 — Shield Sacrifice Module I", "Pajzsenergiát továbbít szövetségesnek, majd a P.E.T. leáll.");
+            RegisterAbility(PetGearTypeModule.RESOURCE_SYSTEM_LOCATOR, "G-RL3 — Resource Locator Module III", "Rendszerszintű nyersanyag bemérés 5000 egységig.");
+            RegisterAbility(PetGearTypeModule.HP_LINK, "G-HPL — HP Link P.E.T. Gear", "20 másodpercig az űrhajót érő életerő-sebzést a P.E.T.-re terheli át. Újratöltés: 240 másodperc.");
         }
 
         public override byte[] GetShipCreateCommand() { return null; }
