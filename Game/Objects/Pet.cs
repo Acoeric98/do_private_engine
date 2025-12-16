@@ -681,7 +681,7 @@ namespace Ow.Game.Objects
 
             if (gearId == PetGearTypeModule.KAMIKAZE && IsKamikazeOnCooldown())
             {
-                Owner.SendPacket("0|A|STM|msg_pet_kamikaze_on_cooldown");
+                Owner.SendPacket("0|A|STD|A kamikaze modul újratöltés alatt áll.");
                 Owner.SendCommand(PetGearSelectCommand.write(new PetGearTypeModule(GearId), new List<int>()));
                 return;
             }
@@ -799,7 +799,7 @@ namespace Ow.Game.Objects
 
             if (!_kamikazeReadyNotified)
             {
-                Owner.SendPacket("0|A|STM|msg_pet_kamikaze_ready");
+                Owner.SendPacket("0|A|STD|A kamikaze modul ismét bevethető.");
                 _kamikazeReadyNotified = true;
             }
         }
@@ -809,7 +809,6 @@ namespace Ow.Game.Objects
             if (_kamikazeGearEnabled == enabled) return;
 
             _kamikazeGearEnabled = enabled;
-            Owner.SendCommand(PetGearAddCommand.write(new PetGearTypeModule(PetGearTypeModule.KAMIKAZE), 3, 1, enabled));
         }
 
         private bool IsAbilityNavigating()
