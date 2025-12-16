@@ -452,6 +452,8 @@ namespace Ow.Game.Objects
 
             if (_kamikazeDetonationTime <= DateTime.Now)
             {
+                var ownerSelectedCharacter = Owner.SelectedCharacter;
+
                 foreach (var character in Owner.InRangeCharacters.Values)
                 {
                     if (character == Owner || character == this) continue;
@@ -472,6 +474,14 @@ namespace Ow.Game.Objects
                 UpdateKamikazeGearAvailability(false);
                 Deactivate(true, true);
                 ResetKamikazeState();
+
+                if (ownerSelectedCharacter != null
+                    && !ownerSelectedCharacter.Destroyed
+                    && ownerSelectedCharacter != Owner
+                    && ownerSelectedCharacter.Spacemap == Owner.Spacemap)
+                {
+                    Owner.SelectEntity(ownerSelectedCharacter.Id);
+                }
             }
         }
 
@@ -809,6 +819,12 @@ namespace Ow.Game.Objects
             if (_kamikazeGearEnabled == enabled) return;
 
             _kamikazeGearEnabled = enabled;
+
+            Owner.SendCommand(PetGearAddCommand.write(
+                new PetGearTypeModule(PetGearTypeModule.KAMIKAZE),
+                3,
+                1,
+                enabled));
         }
 
         private bool IsAbilityNavigating()
