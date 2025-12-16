@@ -74,6 +74,30 @@ namespace Ow.Game.Objects
         private DateTime _lastLocatorPing = DateTime.MinValue;
         private bool _shieldSacrificeTriggered = false;
 
+        private void AddHpLinkVisuals()
+        {
+            Owner.AddVisualModifier(VisualModifierCommand.GREEN_GLOW, 0, "", 0, true);
+            AddVisualModifier(VisualModifierCommand.GREEN_GLOW, 0, "", 0, true);
+        }
+
+        private void RemoveHpLinkVisuals()
+        {
+            Owner.RemoveVisualModifier(VisualModifierCommand.GREEN_GLOW);
+            RemoveVisualModifier(VisualModifierCommand.GREEN_GLOW);
+        }
+
+        private void AddShieldSacrificeVisuals()
+        {
+            Owner.AddVisualModifier(VisualModifierCommand.RED_GLOW, 0, "", 0, true);
+            AddVisualModifier(VisualModifierCommand.RED_GLOW, 0, "", 0, true);
+        }
+
+        private void RemoveShieldSacrificeVisuals()
+        {
+            Owner.RemoveVisualModifier(VisualModifierCommand.RED_GLOW);
+            RemoveVisualModifier(VisualModifierCommand.RED_GLOW);
+        }
+
         public Pet(Player player) : base(Randoms.CreateRandomID(), "P.E.T 15", player.FactionId, GameManager.GetShip(22), player.Position, player.Spacemap, player.Clan)
         {
             Name = player.PetName;
@@ -321,6 +345,7 @@ namespace Ow.Game.Objects
             {
                 HpLinkActive = false;
                 _hpLinkCooldownEndTime = DateTime.Now.AddSeconds(240);
+                RemoveHpLinkVisuals();
                 Owner.SendPacket("0|A|STM|msg_pet_hp_link_deactivated");
                 return;
             }
@@ -338,6 +363,7 @@ namespace Ow.Game.Objects
                     UpdateStatus();
                     Deactivate(true, true);
                     HpLinkActive = false;
+                    RemoveHpLinkVisuals();
                     return;
                 }
 
@@ -444,6 +470,7 @@ namespace Ow.Game.Objects
         {
             if (!ShieldSacrificeActive)
             {
+                RemoveShieldSacrificeVisuals();
                 ResetShieldSacrificeState();
                 return;
             }
@@ -487,6 +514,7 @@ namespace Ow.Game.Objects
 
                 Deactivate(true, true);
                 ShieldSacrificeActive = false;
+                RemoveShieldSacrificeVisuals();
                 ResetShieldSacrificeState();
             }
         }
@@ -545,6 +573,8 @@ namespace Ow.Game.Objects
             {
                 if (LastCombatTime.AddSeconds(10) < DateTime.Now || direct)
                 {
+                    RemoveHpLinkVisuals();
+                    RemoveShieldSacrificeVisuals();
                     Owner.SendPacket("0|PET|D");
 
                     if (destroyed)
@@ -653,6 +683,7 @@ namespace Ow.Game.Objects
                     break;
                 case PetGearTypeModule.SHIELD_SACRIFICE:
                     ShieldSacrificeActive = true;
+                    AddShieldSacrificeVisuals();
                     break;
                 case PetGearTypeModule.TRADE_MODULE:
                     TradePodActive = true;
@@ -667,6 +698,7 @@ namespace Ow.Game.Objects
                         HpLinkActive = true;
                         _hpLinkEndTime = DateTime.Now.AddSeconds(20);
                         _lastOwnerHitpoints = Owner.CurrentHitPoints;
+                        AddHpLinkVisuals();
                         Owner.SendPacket("0|A|STM|msg_pet_hp_link_activated");
                     }
                     break;
@@ -678,6 +710,8 @@ namespace Ow.Game.Objects
 
         private void ResetState()
         {
+            RemoveHpLinkVisuals();
+            RemoveShieldSacrificeVisuals();
             GuardModeActive = false;
             AutoLootActive = false;
             ResourceCollectorActive = false;
