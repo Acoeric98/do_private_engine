@@ -15,6 +15,18 @@ namespace Ow.Game.Objects
 {
     class Pet : Character
     {
+        private static readonly HashSet<short> DisabledGears = new HashSet<short>
+        {
+            PetGearTypeModule.AUTO_RESOURCE_COLLECTION,
+            PetGearTypeModule.ENEMY_LOCATOR,
+            PetGearTypeModule.RESOURCE_LOCATOR,
+            PetGearTypeModule.RESOURCE_SYSTEM_LOCATOR,
+            PetGearTypeModule.TRADE_POD,
+            PetGearTypeModule.TRADE_MODULE,
+            PetGearTypeModule.HP_LINK,
+            PetGearTypeModule.SHIELD_SACRIFICE
+        };
+
         public Player Owner { get; set; }
 
         public override int Speed
@@ -137,23 +149,7 @@ namespace Ow.Game.Objects
             }
         }
 
-        private bool IsGearDisabled(short gearId)
-        {
-            switch (gearId)
-            {
-                case PetGearTypeModule.AUTO_RESOURCE_COLLECTION:
-                case PetGearTypeModule.ENEMY_LOCATOR:
-                case PetGearTypeModule.RESOURCE_LOCATOR:
-                case PetGearTypeModule.RESOURCE_SYSTEM_LOCATOR:
-                case PetGearTypeModule.TRADE_POD:
-                case PetGearTypeModule.TRADE_MODULE:
-                case PetGearTypeModule.HP_LINK:
-                case PetGearTypeModule.SHIELD_SACRIFICE:
-                    return true;
-                default:
-                    return false;
-            }
-        }
+        private bool IsGearDisabled(short gearId) => DisabledGears.Contains(gearId);
 
         public bool CheckAutoLoot()
         {
@@ -626,7 +622,7 @@ namespace Ow.Game.Objects
         private void Initialization(short gearId = PetGearTypeModule.PASSIVE)
         {
             Owner.SendCommand(PetStatusCommand.write(Id, 15, 27000000, 27000000, CurrentHitPoints, MaxHitPoints, CurrentShieldPoints, MaxShieldPoints, 50000, 50000, Speed, Name));
-            foreach (var ability in _abilities.Values)
+            foreach (var ability in _abilities.Values.Where(ability => !IsGearDisabled(ability.GearType)))
             {
                 // Ensure the client treats every gear as owned/available by reporting at least one copy.
                 Owner.SendCommand(PetGearAddCommand.write(new PetGearTypeModule(ability.GearType), 3, 1, true));
@@ -657,7 +653,6 @@ namespace Ow.Game.Objects
             if (IsGearDisabled(gearId))
             {
                 GearId = PetGearTypeModule.PASSIVE;
-                Owner.SendPacket("0|A|STD|pet_gear_disabled");
                 Owner.SendCommand(PetGearSelectCommand.write(new PetGearTypeModule(GearId), new List<int>()));
                 return;
             }
