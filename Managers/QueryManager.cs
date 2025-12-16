@@ -483,7 +483,7 @@ namespace Ow.Managers
                 {
                     int id = Convert.ToInt32(row["toClanId"]);
                     Diplomacy relation = (Diplomacy)Convert.ToInt32(row["diplomacyType"]);
-                    clan.Diplomacies.Add(id, relation);
+                    clan.Diplomacies[id] = relation;
                 }
 
                 var data2 = (DataTable)mySqlClient.ExecuteQueryTable($"SELECT * FROM server_clan_diplomacy WHERE toClanId = {clan.Id}");
@@ -491,7 +491,7 @@ namespace Ow.Managers
                 {
                     int id = Convert.ToInt32(row["senderClanId"]);
                     Diplomacy relation = (Diplomacy)Convert.ToInt32(row["diplomacyType"]);
-                    clan.Diplomacies.Add(id, relation);
+                    clan.Diplomacies[id] = relation;
                 }
             }
         }
