@@ -453,6 +453,7 @@ namespace Ow.Game.Objects
             if (_kamikazeDetonationTime <= DateTime.Now)
             {
                 var ownerSelectedCharacter = Owner.SelectedCharacter;
+                var ownerWasAttacking = Owner.AttackManager.Attacking;
 
                 foreach (var character in Owner.InRangeCharacters.Values)
                 {
@@ -482,6 +483,11 @@ namespace Ow.Game.Objects
                     && ownerSelectedCharacter.Spacemap == Owner.Spacemap)
                 {
                     Owner.SelectEntity(ownerSelectedCharacter.Id);
+
+                    if (ownerWasAttacking && Owner.SelectedCharacter == ownerSelectedCharacter)
+                    {
+                        Owner.EnableAttack(Owner.Settings.InGameSettings.selectedLaser);
+                    }
                 }
             }
         }
