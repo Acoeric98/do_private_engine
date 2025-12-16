@@ -60,6 +60,8 @@ namespace Ow.Game.Objects
         private DateTime _kamikazeDetonationTime = DateTime.MinValue;
         private bool _kamikazeArming;
         private DateTime _kamikazeCooldownEndTime = DateTime.MinValue;
+        private bool _kamikazeReadyNotified = true;
+        private bool _kamikazeGearEnabled = true;
         private Collectable _activeCollectableTarget;
         private Character _shieldSacrificeTarget;
         private DateTime _shieldSacrificeDetonationTime = DateTime.MinValue;
@@ -139,6 +141,7 @@ namespace Ow.Game.Objects
         {
             if (Activated)
             {
+                HandleKamikazeCooldownReady();
                 CheckShieldPointsRepair();
                 CheckGuardMode();
                 var collecting = CheckAutoLoot();
@@ -401,7 +404,7 @@ namespace Ow.Game.Objects
                 return;
             }
 
-            if (_kamikazeCooldownEndTime > DateTime.Now)
+            if (IsKamikazeOnCooldown())
             {
                 ResetKamikazeState();
                 return;
@@ -465,6 +468,8 @@ namespace Ow.Game.Objects
                 }
 
                 _kamikazeCooldownEndTime = DateTime.Now.AddSeconds(KAMIKAZE_COOLDOWN_SECONDS);
+                _kamikazeReadyNotified = false;
+                UpdateKamikazeGearAvailability(false);
                 Deactivate(true, true);
                 ResetKamikazeState();
             }
@@ -633,11 +638,18 @@ namespace Ow.Game.Objects
 
         private void Initialization(short gearId = PetGearTypeModule.PASSIVE)
         {
+            HandleKamikazeCooldownReady();
             Owner.SendCommand(PetStatusCommand.write(Id, 15, 27000000, 27000000, CurrentHitPoints, MaxHitPoints, CurrentShieldPoints, MaxShieldPoints, 50000, 50000, Speed, Name));
             foreach (var ability in _abilities.Values.Where(ability => !IsGearDisabled(ability.GearType)))
             {
                 // Ensure the client treats every gear as owned/available by reporting at least one copy.
-                Owner.SendCommand(PetGearAddCommand.write(new PetGearTypeModule(ability.GearType), 3, 1, true));
+                var enabled = ability.GearType != PetGearTypeModule.KAMIKAZE || !IsKamikazeOnCooldown();
+                Owner.SendCommand(PetGearAddCommand.write(new PetGearTypeModule(ability.GearType), 3, 1, enabled));
+
+                if (ability.GearType == PetGearTypeModule.KAMIKAZE)
+                {
+                    _kamikazeGearEnabled = enabled;
+                }
             }
             SwitchGear(gearId);
         }
@@ -660,14 +672,21 @@ namespace Ow.Game.Objects
             if (!Activated)
                 Activate();
 
-            ResetState();
-
             if (IsGearDisabled(gearId))
             {
                 GearId = PetGearTypeModule.PASSIVE;
                 Owner.SendCommand(PetGearSelectCommand.write(new PetGearTypeModule(GearId), new List<int>()));
                 return;
             }
+
+            if (gearId == PetGearTypeModule.KAMIKAZE && IsKamikazeOnCooldown())
+            {
+                Owner.SendPacket("0|A|STM|msg_pet_kamikaze_on_cooldown");
+                Owner.SendCommand(PetGearSelectCommand.write(new PetGearTypeModule(GearId), new List<int>()));
+                return;
+            }
+
+            ResetState();
 
             switch (gearId)
             {
@@ -764,6 +783,33 @@ namespace Ow.Game.Objects
             ResetKamikazeState();
             ResetShieldSacrificeState();
             _activeCollectableTarget = null;
+        }
+
+        private bool IsKamikazeOnCooldown()
+        {
+            return _kamikazeCooldownEndTime > DateTime.Now;
+        }
+
+        private void HandleKamikazeCooldownReady()
+        {
+            if (_kamikazeCooldownEndTime == DateTime.MinValue || _kamikazeCooldownEndTime > DateTime.Now) return;
+
+            _kamikazeCooldownEndTime = DateTime.MinValue;
+            UpdateKamikazeGearAvailability(true);
+
+            if (!_kamikazeReadyNotified)
+            {
+                Owner.SendPacket("0|A|STM|msg_pet_kamikaze_ready");
+                _kamikazeReadyNotified = true;
+            }
+        }
+
+        private void UpdateKamikazeGearAvailability(bool enabled)
+        {
+            if (_kamikazeGearEnabled == enabled) return;
+
+            _kamikazeGearEnabled = enabled;
+            Owner.SendCommand(PetGearAddCommand.write(new PetGearTypeModule(PetGearTypeModule.KAMIKAZE), 3, 1, enabled));
         }
 
         private bool IsAbilityNavigating()
