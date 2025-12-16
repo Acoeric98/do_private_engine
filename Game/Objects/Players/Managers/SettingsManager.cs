@@ -402,7 +402,7 @@ namespace Ow.Game.Objects.Players.Managers
         public static string[] CpusCategory =
         {
             "equipment_extra_cpu_cl04k-xl", "equipment_extra_cpu_arol-x", "equipment_extra_cpu_rllb-x"
-              /**  "equipment_extra_cpu_aim-01", "equipment_extra_cpu_aim-02", "equipment_extra_cpu_ajp-01",
+              /"equipment_extra_cpu_aim-01", "equipment_extra_cpu_aim-02", "equipment_extra_cpu_ajp-01",
                 "equipment_extra_cpu_alb-x", "equipment_extra_cpu_anti-z1", "equipment_extra_cpu_anti-z1-xl",
                 "equipment_extra_cpu_arol-x", "equipment_extra_cpu_cl04k-m", "equipment_extra_cpu_cl04k-xl",
                 "equipment_extra_cpu_cl04k-xs", "equipment_extra_cpu_dr-01", "equipment_extra_cpu_dr-02",
@@ -416,7 +416,7 @@ namespace Ow.Game.Objects.Players.Managers
                 "equipment_extra_repbot_rep-2", "equipment_extra_repbot_rep-3", "equipment_extra_repbot_rep-4",
                 "equipment_extra_repbot_rep-s", "equipment_weapon_rocketlauncher_hst-1",
                 "equipment_weapon_rocketlauncher_hst-2", "equipment_weapon_rocketlauncher_not_present", "equipment_extra_cpu_nc-rrb-x"
-               */
+               
         };
 
         public static string[] BuyCategory =
