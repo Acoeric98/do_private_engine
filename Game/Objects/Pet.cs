@@ -475,7 +475,8 @@ namespace Ow.Game.Objects
                 Deactivate(true, true);
                 ResetKamikazeState();
 
-                if (ownerSelectedCharacter != null
+                if (Owner.SelectedCharacter == null
+                    && ownerSelectedCharacter != null
                     && !ownerSelectedCharacter.Destroyed
                     && ownerSelectedCharacter != Owner
                     && ownerSelectedCharacter.Spacemap == Owner.Spacemap)
