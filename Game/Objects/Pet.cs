@@ -137,6 +137,24 @@ namespace Ow.Game.Objects
             }
         }
 
+        private bool IsGearDisabled(short gearId)
+        {
+            switch (gearId)
+            {
+                case PetGearTypeModule.AUTO_RESOURCE_COLLECTION:
+                case PetGearTypeModule.ENEMY_LOCATOR:
+                case PetGearTypeModule.RESOURCE_LOCATOR:
+                case PetGearTypeModule.RESOURCE_SYSTEM_LOCATOR:
+                case PetGearTypeModule.TRADE_POD:
+                case PetGearTypeModule.TRADE_MODULE:
+                case PetGearTypeModule.HP_LINK:
+                case PetGearTypeModule.SHIELD_SACRIFICE:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
         public bool CheckAutoLoot()
         {
             if (!AutoLootActive && !ResourceCollectorActive)
@@ -635,6 +653,14 @@ namespace Ow.Game.Objects
                 Activate();
 
             ResetState();
+
+            if (IsGearDisabled(gearId))
+            {
+                GearId = PetGearTypeModule.PASSIVE;
+                Owner.SendPacket("0|A|STD|pet_gear_disabled");
+                Owner.SendCommand(PetGearSelectCommand.write(new PetGearTypeModule(GearId), new List<int>()));
+                return;
+            }
 
             switch (gearId)
             {
