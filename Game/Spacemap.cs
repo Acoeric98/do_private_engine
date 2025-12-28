@@ -129,8 +129,14 @@ namespace Ow.Game
             {
                 for (int i = 1; i <= 125; i++)
                     new BonusBox(Position.Random(this, 0, 20800, 0, 12800), this, true);
-                //for (int i = 0; i <= 25; i++)
-                    //new GreenBooty(Position.Random(this, 0, 20800, 0, 12800), this, true);
+                for (int i = 1; i <= 125; i++)
+                    new BlueBooty(Position.Random(this, 0, 20800, 0, 12800), this, true);
+                for (int i = 1; i <= 125; i++)
+                    new RedBooty(Position.Random(this, 0, 20800, 0, 12800), this, true);
+                for (int i = 1; i <= 125; i++)
+                    new GoldBooty(Position.Random(this, 0, 20800, 0, 12800), this, true);
+                for (int i = 1; i <= 125; i++)
+                    new GreenBooty(Position.Random(this, 0, 20800, 0, 12800), this, true);
             }
 
             if (Id == 101)
