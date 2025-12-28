@@ -75,10 +75,8 @@ namespace Ow.Game.Objects.Collectables
                     var itemsJson = itemsRow?["items"]?.ToString();
                     var items = string.IsNullOrEmpty(itemsJson) ? new JObject() : JsonConvert.DeserializeObject<JObject>(itemsJson) ?? new JObject();
 
-                    if (items[itemKey] == null || items[itemKey].Type != JTokenType.Integer)
-                        items[itemKey] = 0;
-
-                    items[itemKey] = items[itemKey].Value<int>() + 1;
+                    IncrementItem(items, itemKey);
+                    IncrementItem(items, $"{itemKey}Count");
 
                     var serializedItems = JsonConvert.SerializeObject(items).Replace("'", "\\'");
                     mySqlClient.ExecuteNonQuery($"UPDATE player_equipment SET items = '{serializedItems}' WHERE userId = {player.Id}");
@@ -88,6 +86,14 @@ namespace Ow.Game.Objects.Collectables
             {
                 Logger.Log("error_log", $"- [GoldBooty.cs] UpdateItemsInventory exception: {e}");
             }
+        }
+
+        private void IncrementItem(JObject items, string key)
+        {
+            if (items[key] == null || items[key].Type != JTokenType.Integer)
+                items[key] = 0;
+
+            items[key] = items[key].Value<int>() + 1;
         }
     }
 }
