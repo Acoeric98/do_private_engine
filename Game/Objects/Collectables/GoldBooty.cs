@@ -67,17 +67,26 @@ namespace Ow.Game.Objects.Collectables
 
         private void UpdateItemsInventory(Player player, string itemKey)
         {
-            using (var mySqlClient = SqlDatabaseManager.GetClient())
+            try
             {
-                var itemsRow = mySqlClient.ExecuteQueryRow($"SELECT items FROM player_equipment WHERE userId = {player.Id}");
-                var items = JsonConvert.DeserializeObject<JObject>(itemsRow["items"].ToString()) ?? new JObject();
+                using (var mySqlClient = SqlDatabaseManager.GetClient())
+                {
+                    var itemsRow = mySqlClient.ExecuteQueryRow($"SELECT items FROM player_equipment WHERE userId = {player.Id}");
+                    var itemsJson = itemsRow?["items"]?.ToString();
+                    var items = string.IsNullOrEmpty(itemsJson) ? new JObject() : JsonConvert.DeserializeObject<JObject>(itemsJson) ?? new JObject();
 
-                if (items[itemKey] == null || items[itemKey].Type != JTokenType.Integer)
-                    items[itemKey] = 0;
+                    if (items[itemKey] == null || items[itemKey].Type != JTokenType.Integer)
+                        items[itemKey] = 0;
 
-                items[itemKey] = items[itemKey].Value<int>() + 1;
+                    items[itemKey] = items[itemKey].Value<int>() + 1;
 
-                mySqlClient.ExecuteNonQuery($"UPDATE player_equipment SET items = '{JsonConvert.SerializeObject(items)}' WHERE userId = {player.Id}");
+                    var serializedItems = JsonConvert.SerializeObject(items).Replace("'", "\\'");
+                    mySqlClient.ExecuteNonQuery($"UPDATE player_equipment SET items = '{serializedItems}' WHERE userId = {player.Id}");
+                }
+            }
+            catch (Exception e)
+            {
+                Logger.Log("error_log", $"- [GoldBooty.cs] UpdateItemsInventory exception: {e}");
             }
         }
     }
