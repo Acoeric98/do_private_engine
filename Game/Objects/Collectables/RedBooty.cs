@@ -53,7 +53,38 @@ namespace Ow.Game.Objects.Collectables
             player.Storage.BattleStationModules.Add(new ModuleBase(moduleId, selectedType, false));
             QueryManager.SavePlayer.Modules(player);
 
-            player.SendPacket($"0|A|STD|Battlestation modul nyitás: {selectedType} (ID: {moduleId})");
+            player.SendPacket($"0|A|STD|Battlestation modul nyitás: {GetModuleName(selectedType)}");
+        }
+
+        private string GetModuleName(short moduleType)
+        {
+            switch (moduleType)
+            {
+                case StationModuleModule.DAMAGE_BOOSTER:
+                    return "DMG";
+                case StationModuleModule.EXPERIENCE_BOOSTER:
+                    return "EXP";
+                case StationModuleModule.HONOR_BOOSTER:
+                    return "HON";
+                case StationModuleModule.REPAIR:
+                    return "REP";
+                case StationModuleModule.LASER_HIGH_RANGE:
+                    return "Lézer (HR)";
+                case StationModuleModule.LASER_MID_RANGE:
+                    return "Lézer (MR)";
+                case StationModuleModule.LASER_LOW_RANGE:
+                    return "Lézer (LR)";
+                case StationModuleModule.ROCKET_MID_ACCURACY:
+                    return "Rakéta (MA)";
+                case StationModuleModule.ROCKET_LOW_ACCURACY:
+                    return "Rakéta (LA)";
+                case StationModuleModule.DEFLECTOR:
+                    return "Deflektor";
+                case StationModuleModule.HULL:
+                    return "Törzs";
+                default:
+                    return moduleType.ToString();
+            }
         }
     }
 }
