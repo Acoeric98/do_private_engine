@@ -16,56 +16,65 @@ namespace Ow.Game.Objects.Collectables
 
         public override void Reward(Player player)
         {
-           
-                double rand = Randoms.random.NextDouble();
+            var roll = Randoms.random.NextDouble();
 
-                rand = 0.15;
+            if (roll < 0.25)
+            {
+                GrantItem(player, "lf4", "Kaptál egy LF-4 típusú lézert");
+            }
+            else if (roll < 0.5)
+            {
+                GrantItem(player, "havoc", "Kaptál egy HAVOC típusú dróndizájnt");
+            }
+            else if (roll < 0.75)
+            {
+                GrantItem(player, "hercules", "Kaptál egy HERCULES típusú dróndizájnt");
+            }
+            else
+            {
+                GrantRandomBooster(player);
+            }
 
-                if (rand <= 0.02)
-                {
-                    double rand2 = Randoms.random.NextDouble();
+            player.Equipment.Items.BootyKeys--;
 
-                    if (rand2 <= 0.5)
-                    {
-                        //test = "lf4";
-                    }
-                    else
-                    {
-                        //test = "apis";
-                    }
-                }
-                else if (rand <= 0.09)
-                {
-                    //test = "gemi tasarım varsa 10k uri";
-                }
-                else if (rand <= 0.15)
-                {
-                    var hours = Randoms.random.NextDouble() <= 0.1 ? 10 : 1;
-                    var boosterTypes = Randoms.random.NextDouble() <= 0.25 ? new int[] { 1, 16, 9, 11, 6, 3 } : new int[] { 0, 15, 8, 10, 5, 2 };
-                    var boosterType = boosterTypes[Randoms.random.Next(boosterTypes.Length)];
-
-                    player.BoosterManager.Add((BoosterType)boosterType, hours);
-                }
-                else if (rand <= 0.4)
-                {
-                    var logdisk = Randoms.random.Next(1, 10);
-                }
-                else
-                {
-                    var uridium = Randoms.random.Next(1000, 4000);
-                    player.ChangeData(DataType.URIDIUM, uridium);
-                    QueryManager.SavePlayer.Information(player);
-                }
-
-                player.Equipment.Items.BootyKeys--;
-				QueryManager.SavePlayer.Information(player);
-                player.SendPacket($"0|A|BK|{player.Equipment.Items.BootyKeys}");
-           
+            player.SendPacket($"0|A|BK|{player.Equipment.Items.BootyKeys}");
         }
 
         public override byte[] GetCollectableCreateCommand()
         {
             return CreateBoxCommand.write("PIRATE_BOOTY_GOLD", Hash, Position.Y, Position.X);
+        }
+
+        private void GrantRandomBooster(Player player)
+        {
+            var hours = Randoms.random.NextDouble() <= 0.1 ? 10 : 1;
+            var boosterTypes = Randoms.random.NextDouble() <= 0.25 ? new int[] { 1, 16, 9, 11, 6, 3 } : new int[] { 0, 15, 8, 10, 5, 2 };
+            var boosterType = boosterTypes[Randoms.random.Next(boosterTypes.Length)];
+
+            player.BoosterManager.Add((BoosterType)boosterType, hours);
+            player.SendPacket($"0|A|STD|Kaptál egy boostert: {(BoosterType)boosterType} ({hours}h)");
+        }
+
+        private void GrantItem(Player player, string itemKey, string message)
+        {
+            UpdateItemsInventory(player, itemKey);
+            player.SendPacket($"0|A|STD|{message}");
+        }
+
+        private void UpdateItemsInventory(Player player, string itemKey)
+        {
+            using (var mySqlClient = SqlDatabaseManager.GetClient())
+            {
+                var itemsRow = mySqlClient.ExecuteQueryRow($"SELECT items FROM player_equipment WHERE userId = {player.Id}");
+                var items = JsonConvert.DeserializeObject<JObject>(itemsRow["items"].ToString()) ?? new JObject();
+
+                if (items[itemKey] == null || items[itemKey].Type != JTokenType.Integer)
+                    items[itemKey] = 0;
+
+                items[itemKey] = items[itemKey].Value<int>() + 1;
+
+                mySqlClient.ExecuteNonQuery($"UPDATE player_equipment SET items = '{JsonConvert.SerializeObject(items)}' WHERE userId = {player.Id}");
+            }
         }
     }
 }
