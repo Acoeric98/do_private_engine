@@ -147,12 +147,48 @@ namespace Ow.Game.Objects
             lastShieldRepairTime = DateTime.Now;
         }
 
-        public DateTime lastRadiationDamageTime = new DateTime();
+        private int radiationTickCount = 0;
+        private DateTime lastRadiationDamageTime = DateTime.MinValue;
+        private DateTime lastTimeOutsideRadiation = DateTime.MinValue;
+
         public void CheckRadiation()
         {
-            if (Storage.Jumping || !Storage.IsInRadiationZone || Storage.invincibilityEffectTime.AddSeconds(5) >= DateTime.Now || lastRadiationDamageTime.AddSeconds(1) >= DateTime.Now) return;
+            // Ha NINCS radiation zone-ban
+            if (!Storage.IsInRadiationZone)
+            {
+                // első kilépés időpontja
+                if (lastTimeOutsideRadiation == DateTime.MinValue)
+                    lastTimeOutsideRadiation = DateTime.Now;
 
-            AttackManager.Damage(this, this, DamageType.RADIATION, 20000, true, true, false);
+                // ha 5 mp-nél tovább volt kint → reset
+                if (lastTimeOutsideRadiation.AddSeconds(5) < DateTime.Now)
+                    radiationTickCount = 0;
+
+                return;
+            }
+
+            // Ha visszalépett → töröljük a kilépés időbélyegét
+            lastTimeOutsideRadiation = DateTime.MinValue;
+
+            // Tiltó feltételek
+            if (Storage.Jumping ||
+                Storage.invincibilityEffectTime.AddSeconds(5) >= DateTime.Now ||
+                lastRadiationDamageTime.AddSeconds(1) >= DateTime.Now)
+                return;
+
+            int damage;
+
+            // Sebzés skálázás tick alapján
+            if (radiationTickCount < 2)
+                damage = 5000;
+            else if (radiationTickCount < 4)
+                damage = 10000;
+            else
+                damage = 20000;
+
+            AttackManager.Damage(this, this, DamageType.RADIATION, damage, true, true, false);
+
+            radiationTickCount++;
             lastRadiationDamageTime = DateTime.Now;
         }
 
