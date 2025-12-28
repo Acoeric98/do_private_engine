@@ -20,6 +20,7 @@ using Ow.Game;
 using static Ow.Game.GameSession;
 using System.Collections.Concurrent;
 using Ow.Managers.MySQLManager;
+using Ow.Game.Objects.Collectables;
 
 namespace Ow.Chat
 {
@@ -368,6 +369,59 @@ namespace Ow.Chat
                 new Npc(Randoms.CreateRandomID(), ship, spacemap, position);
 
                 Send($"dq%Npc spawned on map {mapId} at X: {x}, Y: {y}.#");
+            }
+            else if (cmd == "/spawn_booty" && Permission == Permissions.ADMINISTRATOR)
+            {
+                var args = message.Split(' ');
+                if (args.Length < 2)
+                {
+                    Send($"dq%Usage: /spawn_booty <type (1=green, 2=red, 3=blue, 4=gold)>.#");
+                    return;
+                }
+
+                if (!int.TryParse(args[1], out var bootyType))
+                {
+                    Send($"dq%Invalid booty type. Use 1=green, 2=red, 3=blue, 4=gold.#");
+                    return;
+                }
+
+                var player = gameSession.Player;
+                var spacemap = player?.Spacemap;
+                if (player == null || spacemap == null)
+                {
+                    Send($"dq%Player or map not available for spawning.#");
+                    return;
+                }
+
+                Collectable booty = null;
+                var bootyName = string.Empty;
+                var position = new Position(player.Position.X, player.Position.Y);
+
+                switch (bootyType)
+                {
+                    case 1:
+                        booty = new GreenBooty(position, spacemap, true);
+                        bootyName = "green";
+                        break;
+                    case 2:
+                        booty = new RedBooty(position, spacemap, true);
+                        bootyName = "red";
+                        break;
+                    case 3:
+                        booty = new BlueBooty(position, spacemap, true);
+                        bootyName = "blue";
+                        break;
+                    case 4:
+                        booty = new GoldBooty(position, spacemap, true);
+                        bootyName = "gold";
+                        break;
+                    default:
+                        Send($"dq%Invalid booty type. Use 1=green, 2=red, 3=blue, 4=gold.#");
+                        return;
+                }
+
+                if (booty != null)
+                    Send($"dq%Spawned {bootyName} booty at your position (map {spacemap.Id}, X: {position.X}, Y: {position.Y}).#");
             }
             else if (cmd == "/jump" && Permission == Permissions.ADMINISTRATOR)
             {
