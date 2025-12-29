@@ -45,10 +45,10 @@ namespace Ow.Game.Objects.Stations
         {
             ShieldAbsorption = 0.8;
 
-            MaxHitPoints = 100000;
+            MaxHitPoints = 7000000;
             CurrentHitPoints = MaxHitPoints;
-            CurrentShieldPoints = 100000;
-            MaxShieldPoints = 100000;
+            CurrentShieldPoints = 3500000;
+            MaxShieldPoints = 3500000;
 
             InBuildingState = inBuildingState;
             BuildTimeInMinutes = buildTimeInMinutes;
@@ -138,7 +138,7 @@ namespace Ow.Game.Objects.Stations
             AssetTypeId = AssetTypeModule.BATTLESTATION;
 
             RemoveVisualModifier(VisualModifierCommand.BATTLESTATION_CONSTRUCTING);
-            //Visuals.Add(new VisualModifierCommand(Id, VisualModifierCommand.BATTLESTATION_DOWNTIME_TIMER, 1800, "", 0, true));
+            Visuals.Add(new VisualModifierCommand(Id, VisualModifierCommand.BATTLESTATION_DOWNTIME_TIMER, 1800, "", 0, true));
             PrepareSatellites();
 
             GameManager.SendCommandToMap(Spacemap.Id, AssetRemoveCommand.write(GetAssetType(), Id));
