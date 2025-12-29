@@ -156,7 +156,7 @@ namespace Ow.Game.Objects.Stations
             var missProbability = Type == StationModuleModule.LASER_LOW_RANGE ? 0.1 : Type == StationModuleModule.LASER_MID_RANGE ? 0.3 : Type == StationModuleModule.LASER_HIGH_RANGE ? 0.4 : Type == StationModuleModule.ROCKET_LOW_ACCURACY ? 0.5 : Type == StationModuleModule.ROCKET_MID_ACCURACY ? 0.3 : 1.00;
 
             var damage = AttackManager.RandomizeDamage((Type == StationModuleModule.LASER_LOW_RANGE ? 59850 : Type == StationModuleModule.LASER_MID_RANGE ? 48450 : Type == StationModuleModule.LASER_HIGH_RANGE ? 28500 : Type == StationModuleModule.ROCKET_LOW_ACCURACY ? 85500 : Type == StationModuleModule.ROCKET_MID_ACCURACY ? 71250 : 0), missProbability);
-            damage = 1000; //for test
+           
 
             var damageType = (Type == StationModuleModule.LASER_LOW_RANGE || Type == StationModuleModule.LASER_MID_RANGE || Type == StationModuleModule.LASER_HIGH_RANGE) ? DamageType.LASER : (Type == StationModuleModule.ROCKET_LOW_ACCURACY || Type == StationModuleModule.ROCKET_MID_ACCURACY) ? DamageType.ROCKET : DamageType.LASER;
 
