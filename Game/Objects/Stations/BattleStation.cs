@@ -138,7 +138,7 @@ namespace Ow.Game.Objects.Stations
             AssetTypeId = AssetTypeModule.BATTLESTATION;
 
             RemoveVisualModifier(VisualModifierCommand.BATTLESTATION_CONSTRUCTING);
-            Visuals.Add(new VisualModifierCommand(Id, VisualModifierCommand.BATTLESTATION_DOWNTIME_TIMER, 1800, "", 0, true));
+            //Visuals.Add(new VisualModifierCommand(Id, VisualModifierCommand.BATTLESTATION_DOWNTIME_TIMER, 1800, "", 0, true));
             PrepareSatellites();
 
             GameManager.SendCommandToMap(Spacemap.Id, AssetRemoveCommand.write(GetAssetType(), Id));
