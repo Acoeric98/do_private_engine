@@ -70,10 +70,10 @@ namespace Ow.Game.Objects.Stations
             SlotId = slotId;
             Type = type;
 
-            MaxHitPoints = 100000;
+            MaxHitPoints = 1650000;
             CurrentHitPoints = MaxHitPoints;
-            CurrentShieldPoints = 100000;
-            MaxShieldPoints = 100000;
+            CurrentShieldPoints = 900000;
+            MaxShieldPoints = 900000;
 
             Program.TickManager.AddTick(this);
         }
