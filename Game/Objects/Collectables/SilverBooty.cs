@@ -1,5 +1,9 @@
-﻿using Ow.Game.Movements;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using Ow.Game.Movements;
+using Ow.Game.Objects.Stations;
 using Ow.Managers;
+using Ow.Managers.MySQLManager;
 using Ow.Net.netty.commands;
 using Ow.Utils;
 using System;
@@ -12,17 +16,84 @@ namespace Ow.Game.Objects.Collectables
 {
     class SilverBooty : Collectable
     {
-        public SilverBooty(Position position, Spacemap spacemap, bool respawnable, Player toPlayer = null) : base(AssetTypeModule.BOXTYPE_PIRATE_BOOTY, position, spacemap, respawnable, toPlayer) { }
+        public GreenBooty(Position position, Spacemap spacemap, bool respawnable, Player toPlayer = null) : base(AssetTypeModule.BOXTYPE_PIRATE_BOOTY, position, spacemap, respawnable, toPlayer) { }
 
         public override void Reward(Player player)
         {
+            var roll = Randoms.random.NextDouble();
 
-            QueryManager.SavePlayer.Information(player);
+            if (roll < 0.25)
+            {
+                GrantItem(player, "lf4", "LF-4 lézer átvéve");
+            }
+            else if (roll < 0.5)
+            {
+                GrantItem(player, "havoc", "Havoc dróndizájn átvéve");
+            }
+            else if (roll < 0.75)
+            {
+                GrantItem(player, "hercules", "Hercules dróndizájn átvéve");
+            }
+            else
+            {
+                GrantRandomBooster(player);
+            }
+
+            player.Equipment.Items.BootyKeys--;
+
+            player.SendPacket($"0|A|BK|{player.Equipment.Items.BootyKeys}");
         }
 
         public override byte[] GetCollectableCreateCommand()
         {
             return CreateBoxCommand.write("PIRATE_BOOTY_SILVER", Hash, Position.Y, Position.X);
+        }
+
+        private void GrantRandomBooster(Player player)
+        {
+            var hours = Randoms.random.NextDouble() <= 0.1 ? 10 : 1;
+            var boosterTypes = Randoms.random.NextDouble() <= 0.25 ? new int[] { 1, 16, 9, 11, 6, 3 } : new int[] { 0, 15, 8, 10, 5, 2 };
+            var boosterType = boosterTypes[Randoms.random.Next(boosterTypes.Length)];
+
+            player.BoosterManager.Add((BoosterType)boosterType, hours);
+            player.SendPacket($"0|A|STD|Booster nyitás: {(BoosterType)boosterType} ({hours}h)");
+        }
+
+        private void GrantItem(Player player, string itemKey, string message)
+        {
+            UpdateItemsInventory(player, itemKey);
+            player.SendPacket($"0|A|STD|{message}");
+        }
+
+        private void UpdateItemsInventory(Player player, string itemKey)
+        {
+            try
+            {
+                using (var mySqlClient = SqlDatabaseManager.GetClient())
+                {
+                    var itemsRow = mySqlClient.ExecuteQueryRow($"SELECT items FROM player_equipment WHERE userId = {player.Id}");
+                    var itemsJson = itemsRow?["items"]?.ToString();
+                    var items = string.IsNullOrEmpty(itemsJson) ? new JObject() : JsonConvert.DeserializeObject<JObject>(itemsJson) ?? new JObject();
+
+                    IncrementItem(items, itemKey);
+                    IncrementItem(items, $"{itemKey}Count");
+
+                    var serializedItems = JsonConvert.SerializeObject(items).Replace("'", "\\'");
+                    mySqlClient.ExecuteNonQuery($"UPDATE player_equipment SET items = '{serializedItems}' WHERE userId = {player.Id}");
+                }
+            }
+            catch (Exception e)
+            {
+                Logger.Log("error_log", $"- [SilverBooty.cs] UpdateItemsInventory exception: {e}");
+            }
+        }
+
+        private void IncrementItem(JObject items, string key)
+        {
+            if (items[key] == null || items[key].Type != JTokenType.Integer)
+                items[key] = 0;
+
+            items[key] = items[key].Value<int>() + 1;
         }
     }
 }
