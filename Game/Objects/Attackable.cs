@@ -224,7 +224,24 @@ namespace Ow.Game.Objects
                     GameManager.SendPacketToAll($"0|A|STM|msg_station_destroyed|%MAP%|{Spacemap.Name}|%LOSER%|{battleStation.Clan.Name}|%STATION%|{battleStation.AsteroidName}");
                 }
 
-                battleStation.EquippedStationModule.Remove(battleStation.Clan.Id);
+                foreach (var modules in battleStation.EquippedStationModule.Values.ToList())
+                {
+                    foreach (var satellite in modules.ToList())
+                    {
+                        satellite.Destroyed = true;
+                        satellite.Remove(true);
+
+                        if (battleStation.Spacemap.Activatables.TryRemove(satellite.Id, out var _))
+                            GameManager.SendCommandToMap(Spacemap.Id, AssetRemoveCommand.write(satellite.GetAssetType(), satellite.Id));
+
+                        satellite.Type = StationModuleModule.NONE;
+                        satellite.CurrentHitPoints = 0;
+                        satellite.CurrentShieldPoints = 0;
+                        satellite.DesignId = 0;
+                    }
+                }
+
+                battleStation.EquippedStationModule.Clear();
                 battleStation.Clan = GameManager.GetClan(0);
                 battleStation.Name = battleStation.AsteroidName;
                 battleStation.InBuildingState = false;
@@ -391,6 +408,32 @@ namespace Ow.Game.Objects
 
             if (this is Player player)
             {
+                if (target is BattleStation targetBattleStation)
+                {
+                    if (targetBattleStation.Clan != null && targetBattleStation.Clan.Id != 0 && targetBattleStation.Clan.Id == player.Clan.Id)
+                    {
+                        player.DisableAttack(player.Settings.InGameSettings.selectedLaser);
+
+                        if (sendMessage)
+                            player.SendPacket("0|A|STD|You can't attack your clan's battle station!");
+
+                        return false;
+                    }
+                }
+                else if (target is Satellite targetSatellite)
+                {
+                    var stationClanId = targetSatellite.BattleStation?.Clan?.Id ?? 0;
+                    if (stationClanId != 0 && stationClanId == player.Clan.Id)
+                    {
+                        player.DisableAttack(player.Settings.InGameSettings.selectedLaser);
+
+                        if (sendMessage)
+                            player.SendPacket("0|A|STD|You can't attack your clan's battle station!");
+
+                        return false;
+                    }
+                }
+
                 if (relationType != ClanRelationModule.AT_WAR)
                 {
                     var attackable = true;
