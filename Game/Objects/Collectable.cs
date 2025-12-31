@@ -91,9 +91,6 @@ namespace Ow.Game.Objects
             else if (Character is Pet pet)
                 pet.SendPacketToInRangePlayers(packet);
 
-            if ((this is BlueBooty || this is SilverBooty || this is RedBooty || this is GreenBooty || this is GoldBooty) &&
-                Character is Player p &&
-                p.Equipment.Items.BootyKeys <= 0)
 
 		    if ((this is BlueBooty || this is SilverBooty || this is RedBooty || this is GreenBooty || this is GoldBooty) &&
                 Character is Player p &&
