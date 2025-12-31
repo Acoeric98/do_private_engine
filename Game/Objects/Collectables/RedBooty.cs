@@ -81,7 +81,7 @@ namespace Ow.Game.Objects.Collectables
                 case StationModuleModule.DEFLECTOR:
                     return "Deflektor";
                 case StationModuleModule.HULL:
-                    return "Törzs";
+                    return "Alapmodul";
                 default:
                     return moduleType.ToString();
             }
