@@ -51,7 +51,9 @@ namespace Ow.Game.Objects
                 {
                     if (!Character.Moving)
                     {
-                        if (!(this is RedBooty) || (this is RedBooty && Character is Player player && player.Equipment.Items.BootyKeys >= 1))
+                        bool needsKey = this is RedBooty || this is GreenBooty || this is BlueBooty || this is GoldBooty || this is SilverBooty;
+
+                        if (!needsKey || (needsKey && Character is Player player && player.Equipment.Items.BootyKeys >= 1))
                         {
                             if (collectTime.AddSeconds(Seconds) < DateTime.Now)
                             {
@@ -89,9 +91,14 @@ namespace Ow.Game.Objects
             else if (Character is Pet pet)
                 pet.SendPacketToInRangePlayers(packet);
 
-            if (this is GreenBooty && Character is Player && (Character as Player).Equipment.Items.BootyKeys <= 0)
-                (Character as Player).SendPacket("0|A|STM|msg_booty-key-green_auto_buy_not_active");
+            if ((this is BlueBooty || this is SilverBooty || this is RedBooty || this is GreenBooty || this is GoldBooty) &&
+                Character is Player p &&
+                p.Equipment.Items.BootyKeys <= 0)
 
+            {
+                p.SendPacket("0|A|STM|msg_booty-key_auto_buy_not_active");
+            }
+            
             Character = null;
 
             Program.TickManager.RemoveTick(this);
