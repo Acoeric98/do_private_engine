@@ -368,11 +368,17 @@ namespace Ow.Managers
                         visualModifiers.Add(modifier);
 
                     var buildTime = battleStation.AssetTypeId != AssetTypeModule.BATTLESTATION && battleStation.InBuildingState ? $"buildTime = '{battleStation.buildTime.ToString("yyyy-MM-dd HH:mm:ss")}'," : "";
-                    var deflectorTime = !battleStation.DeflectorActive ? $"deflectorTime = '{battleStation.deflectorTime.ToString("yyyy-MM-dd HH:mm:ss")}'," : "";
+                    var deflectorSeconds = battleStation.DeflectorActive ? battleStation.GetDeflectorSecondsLeft() : battleStation.DeflectorSecondsMax;
+                    if (battleStation.DeflectorActive)
+                    {
+                        battleStation.DeflectorSecondsLeft = deflectorSeconds;
+                        battleStation.deflectorTime = DateTime.Now;
+                    }
+                    var deflectorTime = $"deflectorTime = '{battleStation.deflectorTime.ToString("yyyy-MM-dd HH:mm:ss")}',";
 
                     mySqlClient.ExecuteNonQuery($"UPDATE server_battlestations SET clanId = {battleStation.Clan.Id}," +
                     $"inBuildingState = {battleStation.InBuildingState}, buildTimeInMinutes = {battleStation.BuildTimeInMinutes}, {buildTime}" +
-                    $"deflectorActive = {battleStation.DeflectorActive}, deflectorSecondsLeft = {battleStation.DeflectorSecondsLeft}, {deflectorTime} visualModifiers = '{JsonConvert.SerializeObject(visualModifiers)}' WHERE name = '{battleStation.AsteroidName}'");
+                    $"deflectorActive = {battleStation.DeflectorActive}, deflectorSecondsLeft = {deflectorSeconds}, {deflectorTime} visualModifiers = '{JsonConvert.SerializeObject(visualModifiers)}' WHERE name = '{battleStation.AsteroidName}'");
                 }
             }
 

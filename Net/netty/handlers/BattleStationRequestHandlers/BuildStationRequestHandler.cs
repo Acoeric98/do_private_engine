@@ -44,7 +44,8 @@ namespace Ow.Net.netty.handlers.BattleStationRequestHandlers
                 }
 
                 battleStation.FactionId = battleStation.Clan.FactionId;
-                battleStation.BuildTimeInMinutes = 0; //0 is for dont wait for install, if you want to wait for install make it = read.buildTimeInMinutes
+                var requestedBuildTime = read.buildTimeInMinutes <= 0 ? 1 : read.buildTimeInMinutes;
+                battleStation.BuildTimeInMinutes = Math.Min(requestedBuildTime, 60);
                 battleStation.buildTime = DateTime.Now;
 
                 Program.TickManager.AddTick(battleStation);
