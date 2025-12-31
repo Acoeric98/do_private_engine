@@ -31,6 +31,7 @@ namespace Ow.Game.Objects.Stations
         public const int DEFLECTOR_MINUTES_MAX = 60;
         public const int DEFLECTOR_MINUTES_INCREMENT = 5;
         public const int DEFLECTOR_DEFAULT_SECONDS = DEFLECTOR_MINUTES_MAX * 60;
+        public const int DEFLECTOR_INACTIVE_AFTER_BUILD_MINUTES = 30;
 
         public Dictionary<int, List<Satellite>> EquippedStationModule = new Dictionary<int, List<Satellite>>();
 
@@ -119,7 +120,7 @@ namespace Ow.Game.Objects.Stations
         {
             if (InBuildingState && buildTime.AddMinutes(BuildTimeInMinutes) < DateTime.Now)
             {
-                Build();
+                Build(true);
                 QueryManager.BattleStations.BattleStation(this);
             }
 
@@ -157,9 +158,21 @@ namespace Ow.Game.Objects.Stations
             return secondsLeft > 0 ? secondsLeft : 0;
         }
 
+        public bool IsDeflectorOnCooldown()
+        {
+            return !DeflectorActive && deflectorTime > DateTime.Now;
+        }
+
+        public int GetDeflectorCooldownSecondsLeft()
+        {
+            if (!IsDeflectorOnCooldown()) return 0;
+
+            return Math.Max(0, (int)deflectorTime.Subtract(DateTime.Now).TotalSeconds);
+        }
+
         public void ActivateDeflector(int seconds)
         {
-            if (DeflectorActive || Destroyed || InBuildingState || !HasDeflectorModuleInstalled()) return;
+            if (DeflectorActive || Destroyed || InBuildingState || !HasDeflectorModuleInstalled() || IsDeflectorOnCooldown()) return;
 
             DeflectorSecondsMax = seconds > 0 ? seconds : DEFLECTOR_DEFAULT_SECONDS;
             DeflectorSecondsLeft = DeflectorSecondsMax;
@@ -192,9 +205,18 @@ namespace Ow.Game.Objects.Stations
             QueryManager.BattleStations.BattleStation(this);
         }
 
-        public void Build()
+        public void Build(bool applyDeflectorCooldown = false)
         {
             AssetTypeId = AssetTypeModule.BATTLESTATION;
+
+            if (applyDeflectorCooldown)
+            {
+                DeflectorActive = false;
+                Invincible = false;
+                DeflectorSecondsLeft = 0;
+                DeflectorSecondsMax = DeflectorSecondsMax > 0 ? DeflectorSecondsMax : DEFLECTOR_DEFAULT_SECONDS;
+                deflectorTime = DateTime.Now.AddMinutes(DEFLECTOR_INACTIVE_AFTER_BUILD_MINUTES);
+            }
 
             RemoveVisualModifier(VisualModifierCommand.BATTLESTATION_CONSTRUCTING);
             //Visuals.Add(new VisualModifierCommand(Id, VisualModifierCommand.BATTLESTATION_DOWNTIME_TIMER, 1800, "", 0, true));
