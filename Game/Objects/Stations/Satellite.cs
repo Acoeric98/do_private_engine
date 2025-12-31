@@ -56,6 +56,11 @@ namespace Ow.Game.Objects.Stations
         public int InstallationSecondsLeft = 0;
         public const int BATTLE_STATION_PEACE_TIME = 15;
         public const int BATTLE_STATION_REPAIR_AMOUNT = 6500;
+        public static int GetShieldRegenerationAmount(int maxShieldPoints)
+        {
+            var regenerationAmount = maxShieldPoints / 25;
+            return regenerationAmount > 0 ? regenerationAmount : 1;
+        }
 
         public int ItemId { get; set; }
         public int SlotId { get; set; }
@@ -122,6 +127,8 @@ namespace Ow.Game.Objects.Stations
                         && Type != StationModuleModule.DAMAGE_BOOSTER && Type != StationModuleModule.EXPERIENCE_BOOSTER 
                         && Type != StationModuleModule.HONOR_BOOSTER && Type != StationModuleModule.REPAIR)
                     {
+                        RegenerateShield();
+
                         foreach (var character in Spacemap.Characters.Values)
                         {
                             if (character is Player || character is Pet)
@@ -129,7 +136,14 @@ namespace Ow.Game.Objects.Stations
                         }
                     }
                     else if (Type == StationModuleModule.REPAIR)
+                    {
+                        RegenerateShield();
                         RepairModules();
+                    }
+                    else
+                    {
+                        RegenerateShield();
+                    }
                 }
             }
         }
@@ -151,7 +165,7 @@ namespace Ow.Game.Objects.Stations
 
             if (BattleStation.CurrentShieldPoints < BattleStation.MaxShieldPoints)
             {
-                BattleStation.Heal(BATTLE_STATION_REPAIR_AMOUNT, 0, HealType.SHIELD);
+                BattleStation.Heal(GetShieldRegenerationAmount(BattleStation.MaxShieldPoints), 0, HealType.SHIELD);
                 repaired = true;
             }
 
@@ -166,11 +180,30 @@ namespace Ow.Game.Objects.Stations
                         module.Heal(BATTLE_STATION_REPAIR_AMOUNT);
                         repaired = true;
                     }
+
+                    if (module.CurrentShieldPoints < module.MaxShieldPoints)
+                    {
+                        module.Heal(GetShieldRegenerationAmount(module.MaxShieldPoints), 0, HealType.SHIELD);
+                        repaired = true;
+                    }
                 }
             }
 
             if (repaired)
                 repairTime = DateTime.Now;
+        }
+
+        private DateTime lastShieldRegeneration = new DateTime();
+        private void RegenerateShield()
+        {
+            if (Destroyed || BattleStation.Destroyed) return;
+            if (BattleStation.AssetTypeId != AssetTypeModule.BATTLESTATION) return;
+            if (LastCombatTime.AddSeconds(BATTLE_STATION_PEACE_TIME) >= DateTime.Now) return;
+            if (CurrentShieldPoints >= MaxShieldPoints) return;
+            if (lastShieldRegeneration.AddSeconds(1) >= DateTime.Now) return;
+
+            Heal(GetShieldRegenerationAmount(MaxShieldPoints), 0, HealType.SHIELD);
+            lastShieldRegeneration = DateTime.Now;
         }
 
         public DateTime lastAttackTime = new DateTime();

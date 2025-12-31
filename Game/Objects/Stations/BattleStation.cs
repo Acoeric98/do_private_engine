@@ -126,7 +126,7 @@ namespace Ow.Game.Objects.Stations
                 {
                     if (lastShieldRegeneration.AddSeconds(1) < DateTime.Now)
                     {
-                        Heal(Satellite.BATTLE_STATION_REPAIR_AMOUNT, 0, HealType.SHIELD);
+                        Heal(Satellite.GetShieldRegenerationAmount(MaxShieldPoints), 0, HealType.SHIELD);
                         lastShieldRegeneration = DateTime.Now;
                     }
                 }
