@@ -27,6 +27,11 @@ namespace Ow.Game.Objects.Stations
 
     class BattleStation : Activatable
     {
+        public const int DEFLECTOR_MINUTES_MIN = 5;
+        public const int DEFLECTOR_MINUTES_MAX = 60;
+        public const int DEFLECTOR_MINUTES_INCREMENT = 5;
+        public const int DEFLECTOR_DEFAULT_SECONDS = DEFLECTOR_MINUTES_MAX * 60;
+
         public Dictionary<int, List<Satellite>> EquippedStationModule = new Dictionary<int, List<Satellite>>();
 
         public bool InBuildingState = false;
@@ -55,8 +60,9 @@ namespace Ow.Game.Objects.Stations
             BuildTimeInMinutes = buildTimeInMinutes;
 
             DeflectorActive = deflectorActive;
+            this.deflectorTime = deflectorTime == default ? DateTime.Now : deflectorTime;
             DeflectorSecondsLeft = deflectorSecondsLeft;
-            DeflectorSecondsMax = deflectorSecondsLeft;
+            DeflectorSecondsMax = deflectorSecondsLeft > 0 ? deflectorSecondsLeft : DEFLECTOR_DEFAULT_SECONDS;
 
             AsteroidName = name;
 
@@ -65,7 +71,7 @@ namespace Ow.Game.Objects.Stations
 
             if (DeflectorActive)
             {
-                DeflectorSecondsLeft = DeflectorSecondsLeft - (int)DateTime.Now.Subtract(deflectorTime).TotalMinutes;
+                DeflectorSecondsLeft = Math.Max(0, DeflectorSecondsLeft - (int)DateTime.Now.Subtract(this.deflectorTime).TotalSeconds);
                 this.deflectorTime = DateTime.Now;
                 Invincible = true;
                 AddVisualModifier(VisualModifierCommand.BATTLESTATION_DEFLECTOR, DeflectorSecondsLeft, "", 0, true);
@@ -117,7 +123,10 @@ namespace Ow.Game.Objects.Stations
                 QueryManager.BattleStations.BattleStation(this);
             }
 
-            if (DeflectorActive && deflectorTime.AddSeconds(DeflectorSecondsLeft) < DateTime.Now)
+            if (DeflectorActive && !HasDeflectorModuleInstalled())
+                DeactiveDeflector();
+
+            if (DeflectorActive && GetDeflectorSecondsLeft() <= 0)
                 DeactiveDeflector();
 
             if (!InBuildingState && AssetTypeId == AssetTypeModule.BATTLESTATION && !Destroyed)
@@ -135,6 +144,39 @@ namespace Ow.Game.Objects.Stations
             }
         }
 
+        public bool HasDeflectorModuleInstalled()
+        {
+            return EquippedStationModule.ContainsKey(Clan.Id) && EquippedStationModule[Clan.Id].Any(x => x.Type == StationModuleModule.DEFLECTOR && x.Installed && !x.Destroyed);
+        }
+
+        public int GetDeflectorSecondsLeft()
+        {
+            if (!DeflectorActive) return 0;
+
+            var secondsLeft = DeflectorSecondsLeft - (int)DateTime.Now.Subtract(deflectorTime).TotalSeconds;
+            return secondsLeft > 0 ? secondsLeft : 0;
+        }
+
+        public void ActivateDeflector(int seconds)
+        {
+            if (DeflectorActive || Destroyed || InBuildingState || !HasDeflectorModuleInstalled()) return;
+
+            DeflectorSecondsMax = seconds > 0 ? seconds : DEFLECTOR_DEFAULT_SECONDS;
+            DeflectorSecondsLeft = DeflectorSecondsMax;
+            deflectorTime = DateTime.Now;
+
+            Invincible = true;
+            DeflectorActive = true;
+
+            AddVisualModifier(VisualModifierCommand.BATTLESTATION_DEFLECTOR, DeflectorSecondsLeft, "", 0, true);
+
+            foreach (var modules in EquippedStationModule.Values)
+                foreach (var satellite in modules)
+                    satellite.AddVisualModifier(VisualModifierCommand.BATTLESTATION_DEFLECTOR, 0, "", 0, true);
+
+            Program.TickManager.AddTick(this);
+        }
+
         public void DeactiveDeflector()
         {
             RemoveVisualModifier(VisualModifierCommand.BATTLESTATION_DEFLECTOR);
@@ -146,6 +188,7 @@ namespace Ow.Game.Objects.Stations
             Invincible = false;
             DeflectorActive = false;
             DeflectorSecondsLeft = 0;
+            deflectorTime = DateTime.Now;
             QueryManager.BattleStations.BattleStation(this);
         }
 
@@ -236,18 +279,23 @@ namespace Ow.Game.Objects.Stations
 
                     if (Clan.Id != 0 && player.Clan.Id == Clan.Id)
                     {
+                        var hasDeflector = HasDeflectorModuleInstalled();
+                        var deflectorActive = hasDeflector && DeflectorActive;
+                        var deflectorSecondsMax = hasDeflector ? (DeflectorSecondsMax > 0 ? DeflectorSecondsMax : DEFLECTOR_DEFAULT_SECONDS) : 0;
+                        var deflectorSecondsLeft = deflectorActive ? GetDeflectorSecondsLeft() : 0;
+
                         player.SendCommand(BattleStationManagementUiInitializationCommand.write(
                             Id, 
                             Id, 
                             Name, 
                             Clan.Name, 
-                            new FactionModule((short)FactionId), 
-                            new BattleStationStatusCommand(Id, Id, Name, DeflectorActive, 0, DeflectorSecondsMax, 0, 0, 0, 0, 0, 0, 0, 0, new EquippedModulesModule(stationModuleModule)),
+                            new FactionModule((short)FactionId),
+                            new BattleStationStatusCommand(Id, Id, Name, deflectorActive, deflectorSecondsLeft, deflectorSecondsMax, 0, 0, 0, 0, 0, 0, 0, 0, new EquippedModulesModule(stationModuleModule)),
                             new AvailableModulesCommand(playerModules),
-                            0,
-                            0,
-                            0,
-                            false));
+                            hasDeflector ? DEFLECTOR_MINUTES_MIN : 0,
+                            hasDeflector ? DEFLECTOR_MINUTES_MAX : 0,
+                            hasDeflector ? DEFLECTOR_MINUTES_INCREMENT : 0,
+                            deflectorActive));
                     }
                     else
                     {

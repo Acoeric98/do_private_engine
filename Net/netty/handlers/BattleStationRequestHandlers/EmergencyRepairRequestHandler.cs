@@ -24,11 +24,34 @@ namespace Ow.Net.netty.handlers.BattleStationRequestHandlers
 
             if (battleStation != null)
             {
-                var module = battleStation.EquippedStationModule[player.Clan.Id].Where(x => x.SlotId == read.slotId).FirstOrDefault();
+                if (!battleStation.EquippedStationModule.TryGetValue(player.Clan.Id, out var modules)) return;
 
-                if (module != null && battleStation.AssetTypeId == AssetTypeModule.BATTLESTATION && !module.EmergencyRepairActive)
+                var module = modules.Where(x => x.SlotId == read.slotId).FirstOrDefault();
+
+                if (module == null || battleStation.AssetTypeId != AssetTypeModule.BATTLESTATION) return;
+
+                if (module.Type == StationModuleModule.DEFLECTOR)
+                {
+                    HandleDeflectorToggle(battleStation, player);
+                    return;
+                }
+
+                if (!module.EmergencyRepairActive)
                     Repair(1200, module);
             }
+        }
+
+        private void HandleDeflectorToggle(BattleStation battleStation, Player player)
+        {
+            if (!battleStation.HasDeflectorModuleInstalled()) return;
+
+            if (battleStation.DeflectorActive)
+                battleStation.DeactiveDeflector();
+            else
+                battleStation.ActivateDeflector(battleStation.DeflectorSecondsMax > 0 ? battleStation.DeflectorSecondsMax : BattleStation.DEFLECTOR_DEFAULT_SECONDS);
+
+            QueryManager.BattleStations.BattleStation(battleStation);
+            battleStation.Click(player.GameSession);
         }
 
         public async void Repair(int seconds, Satellite satellite)
