@@ -26,6 +26,7 @@ namespace Ow.Game.Objects.Players.Managers
     class BoosterManager : AbstractManager
     {
         public Dictionary<short, List<BoosterBase>> Boosters = new Dictionary<short, List<BoosterBase>>();
+        private Dictionary<BoostedAttributeType, int> ExternalBoosts = new Dictionary<BoostedAttributeType, int>();
 
         public BoosterManager(Player player) : base(player) { }
 
@@ -89,22 +90,27 @@ namespace Ow.Game.Objects.Players.Managers
             }
         }
 
+        public void SetExternalBoosts(Dictionary<BoostedAttributeType, int> boosts)
+        {
+            var normalizedBoosts = boosts ?? new Dictionary<BoostedAttributeType, int>();
+
+            if (normalizedBoosts.Count == ExternalBoosts.Count && !normalizedBoosts.Except(ExternalBoosts).Any() && !ExternalBoosts.Except(normalizedBoosts).Any())
+                return;
+
+            ExternalBoosts = normalizedBoosts;
+            Update();
+        }
+
         public void Update()
         {
             var boostedAttributes = new List<BoosterUpdateModule>();
 
-            if (Boosters.ContainsKey((short)BoostedAttributeType.DAMAGE) && Boosters[(short)BoostedAttributeType.DAMAGE].Count >= 1)
-                boostedAttributes.Add(new BoosterUpdateModule(new BoostedAttributeTypeModule(BoostedAttributeTypeModule.DAMAGE), GetPercentage(BoostedAttributeType.DAMAGE), Boosters[(short)BoostedAttributeType.DAMAGE].Select(x => new BoosterTypeModule(x.Type)).ToList()));
-            if (Boosters.ContainsKey((short)BoostedAttributeType.SHIELD) && Boosters[(short)BoostedAttributeType.SHIELD].Count >= 1)
-                boostedAttributes.Add(new BoosterUpdateModule(new BoostedAttributeTypeModule(BoostedAttributeTypeModule.SHIELD), GetPercentage(BoostedAttributeType.SHIELD), Boosters[(short)BoostedAttributeType.SHIELD].Select(x => new BoosterTypeModule(x.Type)).ToList()));
-            if (Boosters.ContainsKey((short)BoostedAttributeType.MAXHP) && Boosters[(short)BoostedAttributeType.MAXHP].Count >= 1)
-                boostedAttributes.Add(new BoosterUpdateModule(new BoostedAttributeTypeModule(BoostedAttributeTypeModule.MAXHP), GetPercentage(BoostedAttributeType.MAXHP), Boosters[(short)BoostedAttributeType.MAXHP].Select(x => new BoosterTypeModule(x.Type)).ToList()));
-            if (Boosters.ContainsKey((short)BoostedAttributeType.REPAIR) && Boosters[(short)BoostedAttributeType.REPAIR].Count >= 1)
-                boostedAttributes.Add(new BoosterUpdateModule(new BoostedAttributeTypeModule(BoostedAttributeTypeModule.REPAIR), GetPercentage(BoostedAttributeType.REPAIR), Boosters[(short)BoostedAttributeType.REPAIR].Select(x => new BoosterTypeModule(x.Type)).ToList()));
-            if (Boosters.ContainsKey((short)BoostedAttributeType.HONOUR) && Boosters[(short)BoostedAttributeType.HONOUR].Count >= 1)
-                boostedAttributes.Add(new BoosterUpdateModule(new BoostedAttributeTypeModule(BoostedAttributeTypeModule.HONOUR), GetPercentage(BoostedAttributeType.HONOUR), Boosters[(short)BoostedAttributeType.HONOUR].Select(x => new BoosterTypeModule(x.Type)).ToList()));
-            if (Boosters.ContainsKey((short)BoostedAttributeType.EP) && Boosters[(short)BoostedAttributeType.EP].Count >= 1)
-                boostedAttributes.Add(new BoosterUpdateModule(new BoostedAttributeTypeModule(BoostedAttributeTypeModule.EP), GetPercentage(BoostedAttributeType.EP), Boosters[(short)BoostedAttributeType.EP].Select(x => new BoosterTypeModule(x.Type)).ToList()));
+            AddBoostedAttribute(boostedAttributes, BoostedAttributeType.DAMAGE, BoostedAttributeTypeModule.DAMAGE);
+            AddBoostedAttribute(boostedAttributes, BoostedAttributeType.SHIELD, BoostedAttributeTypeModule.SHIELD);
+            AddBoostedAttribute(boostedAttributes, BoostedAttributeType.MAXHP, BoostedAttributeTypeModule.MAXHP);
+            AddBoostedAttribute(boostedAttributes, BoostedAttributeType.REPAIR, BoostedAttributeTypeModule.REPAIR);
+            AddBoostedAttribute(boostedAttributes, BoostedAttributeType.HONOUR, BoostedAttributeTypeModule.HONOUR);
+            AddBoostedAttribute(boostedAttributes, BoostedAttributeType.EP, BoostedAttributeTypeModule.EP);
 
             Player.SendCommand(AttributeBoosterUpdateCommand.write(boostedAttributes));
             Player.SendCommand(AttributeHitpointUpdateCommand.write(Player.CurrentHitPoints, Player.MaxHitPoints, Player.CurrentNanoHull, Player.MaxNanoHull));
@@ -112,6 +118,20 @@ namespace Ow.Game.Objects.Players.Managers
 
             //TODO dont need every time
             Player.SettingsManager.SendMenuBarsCommand();
+        }
+
+        private void AddBoostedAttribute(List<BoosterUpdateModule> boostedAttributes, BoostedAttributeType boostedAttributeType, short boostedAttributeTypeModule)
+        {
+            var percentage = GetPercentage(boostedAttributeType);
+
+            if (percentage <= 0)
+                return;
+
+            var boosterList = Boosters.ContainsKey((short)boostedAttributeType)
+                ? Boosters[(short)boostedAttributeType].Select(x => new BoosterTypeModule(x.Type)).ToList()
+                : new List<BoosterTypeModule>();
+
+            boostedAttributes.Add(new BoosterUpdateModule(new BoostedAttributeTypeModule(boostedAttributeTypeModule), percentage, boosterList));
         }
 
         public int GetPercentage(BoostedAttributeType boostedAttributeType)
@@ -122,7 +142,14 @@ namespace Ow.Game.Objects.Players.Managers
                 foreach (var booster in Boosters[(short)boostedAttributeType])
                     percentage += GetBoosterPercentage(booster.Type);
 
+            percentage += GetExternalPercentage(boostedAttributeType);
+
             return percentage;
+        }
+
+        private int GetExternalPercentage(BoostedAttributeType boostedAttributeType)
+        {
+            return ExternalBoosts.TryGetValue(boostedAttributeType, out var percentage) ? percentage : 0;
         }
 
         private short GetBoosterType(short boosterType)

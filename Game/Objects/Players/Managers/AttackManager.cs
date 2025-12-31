@@ -20,6 +20,19 @@ namespace Ow.Game.Objects.Players.Managers
 
         public AttackManager(Player player) : base(player) { RocketLauncher = new RocketLauncher(Player); }
 
+        private static void UpdateBattleStationCombatTime(Attackable target)
+        {
+            switch (target)
+            {
+                case Satellite satellite when satellite.BattleStation != null:
+                    satellite.BattleStation.LastCombatTime = DateTime.Now;
+                    break;
+                case BattleStation battleStation:
+                    battleStation.LastCombatTime = DateTime.Now;
+                    break;
+            }
+        }
+
         public DateTime lastAttackTime = new DateTime();
         public DateTime lastRSBAttackTime = new DateTime();
         public DateTime mineCooldown = new DateTime();
@@ -405,6 +418,7 @@ namespace Ow.Game.Objects.Players.Managers
             target.CurrentShieldPoints -= damage;
             Player.CurrentShieldPoints += damage;
             target.LastCombatTime = DateTime.Now;
+            UpdateBattleStationCombatTime(target);
 
             if (damageType == DamageType.LASER)
             {
@@ -578,6 +592,7 @@ namespace Ow.Game.Objects.Players.Managers
 
             target.CurrentShieldPoints -= damageShd;
             target.LastCombatTime = DateTime.Now;
+            UpdateBattleStationCombatTime(target);
 
             if (targetPlayer?.Pet != null)
                 targetPlayer.Pet.NotifyOwnerAttacked(attacker);
@@ -622,6 +637,7 @@ namespace Ow.Game.Objects.Players.Managers
             }
 
             target.LastCombatTime = DateTime.Now;
+            UpdateBattleStationCombatTime(target);
 
             if (targetPlayer?.Pet != null && attacker != null)
                 targetPlayer.Pet.NotifyOwnerAttacked(attacker);
@@ -766,6 +782,7 @@ namespace Ow.Game.Objects.Players.Managers
 
             protector.CurrentShieldPoints -= redirectedShd;
             protector.LastCombatTime = DateTime.Now;
+            UpdateBattleStationCombatTime(protector);
 
             if (totalRedirectedDamage > 0)
             {

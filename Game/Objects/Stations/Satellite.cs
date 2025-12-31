@@ -54,6 +54,8 @@ namespace Ow.Game.Objects.Stations
         public bool EmergencyRepairActive = false;
         public bool Installed = false;
         public int InstallationSecondsLeft = 0;
+        private const int BATTLE_STATION_PEACE_TIME = 15;
+        private const int BATTLE_STATION_REPAIR_AMOUNT = 6500;
 
         public int ItemId { get; set; }
         public int SlotId { get; set; }
@@ -135,19 +137,40 @@ namespace Ow.Game.Objects.Stations
         public DateTime repairTime = new DateTime();
         public void RepairModules()
         {
-            //TODO check
-            if (!Destroyed && repairTime.AddSeconds(1) < DateTime.Now)
+            if (Destroyed || BattleStation.Destroyed || repairTime.AddSeconds(1) >= DateTime.Now) return;
+            if (BattleStation.AssetTypeId != AssetTypeModule.BATTLESTATION) return;
+            if (BattleStation.LastCombatTime.AddSeconds(BATTLE_STATION_PEACE_TIME) >= DateTime.Now) return;
+
+            var repaired = false;
+
+            if (BattleStation.CurrentHitPoints < BattleStation.MaxHitPoints)
             {
-                foreach (var module in BattleStation.EquippedStationModule[Clan.Id])
-                {
-                    if (module.LastCombatTime.AddSeconds(10) >= DateTime.Now) return;
-                    if (module.CurrentHitPoints >= module.MaxHitPoints) return;
-
-                    module.Heal(7500);
-                }
-
-                repairTime = DateTime.Now;
+                BattleStation.Heal(BATTLE_STATION_REPAIR_AMOUNT);
+                repaired = true;
             }
+
+            if (BattleStation.CurrentShieldPoints < BattleStation.MaxShieldPoints)
+            {
+                BattleStation.Heal(BATTLE_STATION_REPAIR_AMOUNT, 0, HealType.SHIELD);
+                repaired = true;
+            }
+
+            if (BattleStation.EquippedStationModule.ContainsKey(Clan.Id))
+            {
+                foreach (var module in BattleStation.EquippedStationModule[Clan.Id].Where(x => !x.Destroyed))
+                {
+                    if (module.LastCombatTime.AddSeconds(BATTLE_STATION_PEACE_TIME) >= DateTime.Now) continue;
+
+                    if (module.CurrentHitPoints < module.MaxHitPoints)
+                    {
+                        module.Heal(BATTLE_STATION_REPAIR_AMOUNT);
+                        repaired = true;
+                    }
+                }
+            }
+
+            if (repaired)
+                repairTime = DateTime.Now;
         }
 
         public DateTime lastAttackTime = new DateTime();

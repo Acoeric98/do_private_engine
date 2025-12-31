@@ -94,6 +94,7 @@ namespace Ow.Game.Objects
         public override void Tick()
         {
             Movement.ActualPosition(this);
+            UpdateBattleStationBoosters();
             CheckHitpointsRepair();
             CheckShieldPointsRepair();
             CheckRadiation();
@@ -134,6 +135,7 @@ namespace Ow.Game.Objects
         }
 
         public DateTime lastShieldRepairTime = new DateTime();
+        private DateTime lastBattleStationBoosterCheck = new DateTime();
         private void CheckShieldPointsRepair()
         {
             if (LastCombatTime.AddSeconds(10) >= DateTime.Now || lastShieldRepairTime.AddSeconds(1) >= DateTime.Now ||
@@ -145,6 +147,52 @@ namespace Ow.Game.Objects
             UpdateStatus();
 
             lastShieldRepairTime = DateTime.Now;
+        }
+
+        private void UpdateBattleStationBoosters()
+        {
+            if (lastBattleStationBoosterCheck.AddSeconds(1) >= DateTime.Now) return;
+
+            var externalBoosts = new Dictionary<BoostedAttributeType, int>();
+
+            foreach (var asset in Storage.InRangeAssets.Values)
+            {
+                if (asset is Satellite satellite &&
+                    satellite.Installed &&
+                    !satellite.Destroyed &&
+                    satellite.BattleStation != null &&
+                    satellite.BattleStation.AssetTypeId == AssetTypeModule.BATTLESTATION &&
+                    satellite.BattleStation.Clan.Id == Clan.Id)
+                {
+                    var boostType = GetBattleStationBoostType(satellite.Type);
+
+                    if (boostType.HasValue)
+                    {
+                        if (!externalBoosts.ContainsKey(boostType.Value))
+                            externalBoosts[boostType.Value] = 0;
+
+                        externalBoosts[boostType.Value] += 5;
+                    }
+                }
+            }
+
+            BoosterManager.SetExternalBoosts(externalBoosts);
+            lastBattleStationBoosterCheck = DateTime.Now;
+        }
+
+        private BoostedAttributeType? GetBattleStationBoostType(short moduleType)
+        {
+            switch (moduleType)
+            {
+                case StationModuleModule.DAMAGE_BOOSTER:
+                    return BoostedAttributeType.DAMAGE;
+                case StationModuleModule.HONOR_BOOSTER:
+                    return BoostedAttributeType.HONOUR;
+                case StationModuleModule.EXPERIENCE_BOOSTER:
+                    return BoostedAttributeType.EP;
+                default:
+                    return null;
+            }
         }
 
         private int radiationTickCount = 0;
