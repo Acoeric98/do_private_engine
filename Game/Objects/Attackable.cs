@@ -229,7 +229,7 @@ namespace Ow.Game.Objects
                     foreach (var satellite in modules.ToList())
                     {
                         satellite.Destroyed = true;
-                        satellite.Remove(true);
+                        satellite.Remove();
 
                         if (battleStation.Spacemap.Activatables.TryRemove(satellite.Id, out var _))
                             GameManager.SendCommandToMap(Spacemap.Id, AssetRemoveCommand.write(satellite.GetAssetType(), satellite.Id));
