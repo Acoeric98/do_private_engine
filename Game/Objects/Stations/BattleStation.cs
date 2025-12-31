@@ -37,6 +37,7 @@ namespace Ow.Game.Objects.Stations
         public int DeflectorSecondsMax = 0;
 
         public string AsteroidName { get; set; }
+        private DateTime lastShieldRegeneration = new DateTime();
 
         public BattleStation(string name, Spacemap spacemap, Position position, Clan clan, 
             List<EquippedModuleBase> modules, bool inBuildingState, int buildTimeInMinutes, DateTime buildTime,
@@ -60,6 +61,7 @@ namespace Ow.Game.Objects.Stations
             AsteroidName = name;
 
             Name = Clan.Id != 0 ? Clan.Name : name;
+            LastCombatTime = DateTime.Now;
 
             if (DeflectorActive)
             {
@@ -117,6 +119,20 @@ namespace Ow.Game.Objects.Stations
 
             if (DeflectorActive && deflectorTime.AddSeconds(DeflectorSecondsLeft) < DateTime.Now)
                 DeactiveDeflector();
+
+            if (!InBuildingState && AssetTypeId == AssetTypeModule.BATTLESTATION && !Destroyed)
+            {
+                if (LastCombatTime.AddSeconds(Satellite.BATTLE_STATION_PEACE_TIME) < DateTime.Now && CurrentShieldPoints < MaxShieldPoints)
+                {
+                    if (lastShieldRegeneration.AddSeconds(1) < DateTime.Now)
+                    {
+                        Heal(Satellite.BATTLE_STATION_REPAIR_AMOUNT, 0, HealType.SHIELD);
+                        lastShieldRegeneration = DateTime.Now;
+                    }
+                }
+                else
+                    lastShieldRegeneration = DateTime.Now;
+            }
         }
 
         public void DeactiveDeflector()
@@ -154,6 +170,7 @@ namespace Ow.Game.Objects.Stations
 
             BuildTimeInMinutes = 0;
             InBuildingState = false;
+            Program.TickManager.AddTick(this);
         }
 
         public void PrepareSatellites()

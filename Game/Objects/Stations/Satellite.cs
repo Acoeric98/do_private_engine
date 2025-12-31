@@ -54,8 +54,8 @@ namespace Ow.Game.Objects.Stations
         public bool EmergencyRepairActive = false;
         public bool Installed = false;
         public int InstallationSecondsLeft = 0;
-        private const int BATTLE_STATION_PEACE_TIME = 15;
-        private const int BATTLE_STATION_REPAIR_AMOUNT = 6500;
+        public const int BATTLE_STATION_PEACE_TIME = 15;
+        public const int BATTLE_STATION_REPAIR_AMOUNT = 6500;
 
         public int ItemId { get; set; }
         public int SlotId { get; set; }
