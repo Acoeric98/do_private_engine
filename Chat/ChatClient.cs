@@ -211,7 +211,66 @@ namespace Ow.Chat
             var message = packet[2];
 
             var cmd = message.Split(' ')[0];
-            if (message.StartsWith("/reconnect"))
+            if (cmd == "/ahelp")
+            {
+                var helpMessages = new List<string>
+                {
+                    "/ahelp - Parancs lista megjelenítése.",
+                    "/reconnect - Chat kapcsolat újraindítása.",
+                    "/w <játékos> <üzenet> - Privát üzenet küldése.",
+                    "/duel <játékos> - Párbaj meghívás küldése.",
+                    "/users - Online játékosok listázása."
+                };
+
+                if (Permission == Permissions.ADMINISTRATOR || Permission == Permissions.CHAT_MODERATOR)
+                {
+                    helpMessages.AddRange(new[]
+                    {
+                        "/kick <userId> - Felhasználó kirúgása a chatről.",
+                        "/ban <userId> <typeId> <óra> <indok> - Tiltás (0=chat, 1=játék; moderátor csak 0).",
+                        "/unban <userId> <typeId> - Tiltás feloldása (0=chat, 1=játék)."
+                    });
+                }
+
+                if (Permission == Permissions.ADMINISTRATOR)
+                {
+                    helpMessages.AddRange(new[]
+                    {
+                        "/msg <szöveg> - Rendszerüzenet küldése mindenkinek.",
+                        "/destroy <userId> - Hajó elpusztítása.",
+                        "/ship <shipId> - Saját hajó típusának cseréje.",
+                        "/spawn <shipId> <mapId> <x> <y> - NPC lehívása a megadott pozícióra.",
+                        "/spawn_booty <típus> - Booty láda létrehozása a jelenlegi pozíciódon (1=zöld, 2=piros, 3=kék, 4=arany).",
+                        "/jump <mapId> - Ugrás egy másik pályára (0,0 pozíció).",
+                        "/tp <mapId> <x> <y> - Ugrás adott pályára koordinátákkal.",
+                        "/ptp <userId> <mapId> <x> <y> - Játékos áthelyezése adott pályára és pozícióra.",
+                        "/set_portal <mapId> <x> <y> <targetMapId> <targetX> <targetY> - Portál létrehozása a pályán.",
+                        "/move <userId> <mapId> - Játékos mozgatása pálya 0,0 koordinátára.",
+                        "/teleport <userId> - Saját hajó áthelyezése a megadott játékoshoz.",
+                        "/pos - Jelenlegi pozíciód kijelzése.",
+                        "/pull <userId> - Játékos behívása a pozíciódra.",
+                        "/speed+ <érték> - Sebesség bónusz beállítása.",
+                        "/damage+ <érték> - Sebzés bónusz beállítása.",
+                        "/hp+ <érték> - Életerő növelése mindkét konfiguráción.",
+                        "/shield+ <érték> - Pajzs növelése mindkét konfiguráción.",
+                        "/god <on|off> - Isten mód ki- vagy bekapcsolása.",
+                        "/start_spaceball [limit] - Spaceball esemény indítása (opcionális limitekkel).",
+                        "/stop_spaceball - Spaceball esemény leállítása.",
+                        "/start_jpb - Jackpot Battle indítása.",
+                        "/give_booster <userId> <boosterType> [óra] - Booster adása (típus: 0,1,2,3,8,9,10,11,12,5,6,15,16,7,4).",
+                        "/system <szöveg> - Rendszerüzenet küldése a chatre.",
+                        "/title <userId> <title> <permanent (0|1)> - Egyedi cím beállítása.",
+                        "/rmtitle <userId> <permanent (0|1)> - Cím eltávolítása.",
+                        "/id <pilotName> - Játékos azonosítójának lekérdezése.",
+                        "/reward <userId> <typeId> <mennyiség> - Jutalom adása (1=uridium, 2=credits, 3=honor, 4=experience).",
+                        "/restart <másodperc> - Szerver újraindításának időzítése."
+                    });
+                }
+
+                foreach (var help in helpMessages)
+                    Send($"dq%{help}#");
+            }
+            else if (message.StartsWith("/reconnect"))
             {
                 Close();
             }
@@ -699,7 +758,7 @@ namespace Ow.Chat
                 0 CHAT BAN
                 1 OYUN BANI
                 */
-                if (message.Split(' ').Length < 4) return;
+                if (message.Split(' ').Length < 3) return;
 
                 var userId = Convert.ToInt32(message.Split(' ')[1]);
                 var typeId = Convert.ToInt32(message.Split(' ')[2]);
