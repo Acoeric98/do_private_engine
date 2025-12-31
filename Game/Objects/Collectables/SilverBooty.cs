@@ -16,7 +16,7 @@ namespace Ow.Game.Objects.Collectables
 {
     class SilverBooty : Collectable
     {
-        public GreenBooty(Position position, Spacemap spacemap, bool respawnable, Player toPlayer = null) : base(AssetTypeModule.BOXTYPE_PIRATE_BOOTY, position, spacemap, respawnable, toPlayer) { }
+        public SilverBooty(Position position, Spacemap spacemap, bool respawnable, Player toPlayer = null) : base(AssetTypeModule.BOXTYPE_PIRATE_BOOTY, position, spacemap, respawnable, toPlayer) { }
 
         public override void Reward(Player player)
         {
