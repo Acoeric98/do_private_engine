@@ -137,6 +137,8 @@ namespace Ow.Game
                     new GoldBooty(Position.Random(this, 0, 20800, 0, 12800), this, true);
                 for (int i = 1; i <= 125; i++)
                     new GreenBooty(Position.Random(this, 0, 20800, 0, 12800), this, true);
+                for (int i = 1; i <= 125; i++)
+                    new SilverBooty(Position.Random(this, 0, 20800, 0, 12800), this, true);
             }
 
             if (Id == 101)
