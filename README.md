@@ -48,7 +48,6 @@ Rövid útmutató a kód felépítéséhez és ahhoz, hogy fejlesztéskor hol é
 Fejlesztéskor érdemes a fenti területeket követni: új játékelemekhez a `Game/` alá, új csomag/parancs kezeléshez a `Net/netty/` alá, adatbázis-műveletekhez a `QueryManager` és `MySQLManager` rétegekhez, míg közös segédfunkciókhoz a `Utils/` modulba tegyél kódot.
 
 
-
 BOOSTER ID:
 
 ID	Kódbeli név
@@ -96,3 +95,4 @@ ID	Kódbeli név	Rövid azonosító (GetName)
 10	HONOR_BOOSTER	HONM-1
 11	DAMAGE_BOOSTER	DMGM-1
 12	EXPERIENCE_BOOSTER	XPM-1
+
