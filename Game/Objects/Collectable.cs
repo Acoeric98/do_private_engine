@@ -97,10 +97,10 @@ namespace Ow.Game.Objects
 
             {
                 p.SendPacket("0|A|STM|msg_booty-key-blue_auto_buy_not_active");
-                p.SendPacket("1|A|STM|msg_booty-key-silver_auto_buy_not_active");
-                p.SendPacket("2|A|STM|msg_booty-key-red_auto_buy_not_active");
-                p.SendPacket("3|A|STM|msg_booty-key-green_auto_buy_not_active");
-                p.SendPacket("4|A|STM|msg_booty-key-gold_auto_buy_not_active");
+                p.SendPacket("0|A|STM|msg_booty-key-silver_auto_buy_not_active");
+                p.SendPacket("0|A|STM|msg_booty-key-red_auto_buy_not_active");
+                p.SendPacket("0|A|STM|msg_booty-key-green_auto_buy_not_active");
+                p.SendPacket("0|A|STM|msg_booty-key-gold_auto_buy_not_active");
             }
             
             Character = null;
