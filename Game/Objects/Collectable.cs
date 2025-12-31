@@ -51,7 +51,7 @@ namespace Ow.Game.Objects
                 {
                     if (!Character.Moving)
                     {
-                        if (!(this is GreenBooty) || (this is GreenBooty && Character is Player player && player.Equipment.Items.BootyKeys >= 1))
+                        if (!(this is RedBooty) || (this is RedBooty && Character is Player player && player.Equipment.Items.BootyKeys >= 1))
                         {
                             if (collectTime.AddSeconds(Seconds) < DateTime.Now)
                             {
