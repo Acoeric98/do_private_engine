@@ -152,20 +152,24 @@ sdfsdf
             if (Disposed) return;
 			
 			bool needsKey = this is RedBooty || this is GreenBooty || this is BlueBooty || this is GoldBooty || this is SilverBooty;
-			if (needsKey && character is Player player && player.Equipment.Items.BootyKeys <= 0)
-		{
-			if (this is BlueBooty)
-				player.SendPacket("0|A|STM|msg_booty-key-blue_auto_buy_not_active");
-			else if (this is SilverBooty)
-				player.SendPacket("0|A|STM|msg_booty-key-silver_auto_buy_not_active");
-			else if (this is RedBooty)
-				player.SendPacket("0|A|STM|msg_booty-key-red_auto_buy_not_active");
-			else if (this is GreenBooty)
-				player.SendPacket("0|A|STM|msg_booty-key-green_auto_buy_not_active");
-			else if (this is GoldBooty)
-				player.SendPacket("0|A|STM|msg_booty-key-gold_auto_buy_not_active");
+			if (needsKey && character is Player)
+			{
+				Player player = (Player)character;
+				if ((player.Equipment.Items.BootyKeys ?? 0) <= 0)
+				{
+					if (this is BlueBooty)
+						player.SendPacket("0|A|STM|msg_booty-key-blue_auto_buy_not_active");
+					else if (this is SilverBooty)
+						player.SendPacket("0|A|STM|msg_booty-key-silver_auto_buy_not_active");
+					else if (this is RedBooty)
+						player.SendPacket("0|A|STM|msg_booty-key-red_auto_buy_not_active");
+					else if (this is GreenBooty)
+						player.SendPacket("0|A|STM|msg_booty-key-green_auto_buy_not_active");
+					else if (this is GoldBooty)
+						player.SendPacket("0|A|STM|msg_booty-key-gold_auto_buy_not_active");
 
-			return; 
+					return; 
+			}
 		}
             Character = character;
             Character.Collecting = true;
