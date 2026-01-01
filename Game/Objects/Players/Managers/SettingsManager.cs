@@ -78,15 +78,21 @@ namespace Ow.Game.Objects.Players.Managers
 
         public int GetKeyCount(BootyKeyType keyType)
         {
-            return keyType switch
+            switch (keyType)
             {
-                BootyKeyType.Green => GreenKeys,
-                BootyKeyType.Red => RedKeys,
-                BootyKeyType.Blue => BlueKeys,
-                BootyKeyType.Silver => SilverKeys,
-                BootyKeyType.Gold => GoldKeys,
-                _ => 0
-            };
+                case BootyKeyType.Green:
+                    return GreenKeys;
+                case BootyKeyType.Red:
+                    return RedKeys;
+                case BootyKeyType.Blue:
+                    return BlueKeys;
+                case BootyKeyType.Silver:
+                    return SilverKeys;
+                case BootyKeyType.Gold:
+                    return GoldKeys;
+                default:
+                    return 0;
+            }
         }
 
         public bool TryConsume(BootyKeyType keyType)
