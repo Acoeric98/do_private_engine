@@ -60,7 +60,7 @@ namespace Ow.Managers
                     var itemsObject = string.IsNullOrWhiteSpace(itemsJson) ? new JObject() : JObject.Parse(itemsJson);
                     var bootyKeys = player?.Equipment?.Items?.BootyKeys ?? new BootyKeysBase();
 
-                    itemsObject["bootyKeys"] = JObject.FromObject(new
+                    var bootyKeysObject = JObject.FromObject(new
                     {
                         greenKeys = bootyKeys.GreenKeys,
                         redKeys = bootyKeys.RedKeys,
@@ -69,8 +69,20 @@ namespace Ow.Managers
                         goldKeys = bootyKeys.GoldKeys
                     });
 
+                    itemsObject["bootyKeys"] = bootyKeysObject;
+
                     var serialized = JsonConvert.SerializeObject(itemsObject).Replace("'", "\\'");
                     mySqlClient.ExecuteNonQuery($"UPDATE player_equipment SET items = '{serialized}' WHERE userId = {player.Id}");
+
+                    try
+                    {
+                        var bootyKeysSerialized = JsonConvert.SerializeObject(bootyKeysObject).Replace("'", "\\'");
+                        mySqlClient.ExecuteNonQuery($"UPDATE player_accounts SET bootyKeys = '{bootyKeysSerialized}' WHERE userId = {player.Id}");
+                    }
+                    catch (Exception e)
+                    {
+                        Logger.Log("error_log", $"- [QueryManager.cs] BootyKeys update account fallback exception: {e}");
+                    }
                 }
             }
         }
@@ -257,6 +269,13 @@ namespace Ow.Managers
                         var itemsObject = string.IsNullOrWhiteSpace(itemsJson) ? new JObject() : JObject.Parse(itemsJson);
                         var bootyKeys = ParseBootyKeys(itemsObject["bootyKeys"]);
 
+                        if (bootyKeys.TotalKeys <= 0)
+                        {
+                            var fallbackBootyKeys = LoadBootyKeysFromAccounts(mySqlClient, player.Id);
+                            if (fallbackBootyKeys != null)
+                                bootyKeys = fallbackBootyKeys;
+                        }
+
                         for (var i = 1; i <= 2; i++)
                         {
                             foreach (int itemId in (dynamic)JsonConvert.DeserializeObject(row[$"config{i}_lasers"].ToString()))
@@ -336,6 +355,53 @@ namespace Ow.Managers
             }
         }
 
+        private static BootyKeysBase LoadBootyKeysFromAccounts(SqlDatabaseClient mySqlClient, int userId)
+        {
+            try
+            {
+                var row = mySqlClient.ExecuteQueryRow($"SELECT bootyKeys FROM player_accounts WHERE userId = {userId}");
+                if (row == null || row.Table?.Columns.Contains("bootyKeys") != true)
+                    return null;
+
+                var bootyKeysValue = row["bootyKeys"];
+                if (bootyKeysValue == null)
+                    return null;
+
+                var bootyKeysString = bootyKeysValue.ToString();
+                if (string.IsNullOrWhiteSpace(bootyKeysString))
+                    return null;
+
+                var bootyKeysToken = TryParseBootyKeysToken(bootyKeysString);
+                if (bootyKeysToken == null)
+                    return null;
+
+                return ParseBootyKeys(bootyKeysToken);
+            }
+            catch (Exception e)
+            {
+                Logger.Log("error_log", $"- [QueryManager.cs] LoadBootyKeysFromAccounts({userId}) exception: {e}");
+                return null;
+            }
+        }
+
+        private static JToken TryParseBootyKeysToken(string bootyKeysString)
+        {
+            if (string.IsNullOrWhiteSpace(bootyKeysString))
+                return null;
+
+            try
+            {
+                return JToken.Parse(bootyKeysString);
+            }
+            catch
+            {
+                if (int.TryParse(bootyKeysString, out var asInteger))
+                    return new JValue(asInteger);
+            }
+
+            return null;
+        }
+
         private static BootyKeysBase ParseBootyKeys(JToken bootyKeysToken)
         {
             var bootyKeys = new BootyKeysBase();
@@ -345,17 +411,25 @@ namespace Ow.Managers
 
             try
             {
+                if (bootyKeysToken.Type == JTokenType.String)
+                {
+                    var parsedToken = TryParseBootyKeysToken(bootyKeysToken.Value<string>());
+                    if (parsedToken != null)
+                        bootyKeysToken = parsedToken;
+                }
+
                 if (bootyKeysToken.Type == JTokenType.Integer)
                 {
                     bootyKeys.GreenKeys = bootyKeysToken.Value<int>();
                 }
                 else if (bootyKeysToken.Type == JTokenType.Object)
                 {
-                    bootyKeys.GreenKeys = bootyKeysToken.Value<int?>("greenKeys") ?? 0;
-                    bootyKeys.RedKeys = bootyKeysToken.Value<int?>("redKeys") ?? 0;
-                    bootyKeys.BlueKeys = bootyKeysToken.Value<int?>("blueKeys") ?? 0;
-                    bootyKeys.SilverKeys = bootyKeysToken.Value<int?>("silverKeys") ?? 0;
-                    bootyKeys.GoldKeys = bootyKeysToken.Value<int?>("goldKeys") ?? 0;
+                    var bootyKeysObject = (JObject)bootyKeysToken;
+                    bootyKeys.GreenKeys = GetBootyKeyValue(bootyKeysObject, "greenKeys");
+                    bootyKeys.RedKeys = GetBootyKeyValue(bootyKeysObject, "redKeys");
+                    bootyKeys.BlueKeys = GetBootyKeyValue(bootyKeysObject, "blueKeys");
+                    bootyKeys.SilverKeys = GetBootyKeyValue(bootyKeysObject, "silverKeys");
+                    bootyKeys.GoldKeys = GetBootyKeyValue(bootyKeysObject, "goldKeys");
                 }
             }
             catch (Exception e)
@@ -364,6 +438,21 @@ namespace Ow.Managers
             }
 
             return bootyKeys;
+        }
+
+        private static int GetBootyKeyValue(JObject bootyKeysObject, params string[] propertyNames)
+        {
+            var property = bootyKeysObject
+                .Properties()
+                .FirstOrDefault(p => propertyNames.Any(name => string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase)));
+
+            if (property == null || property.Value == null)
+                return 0;
+
+            if (property.Value.Type == JTokenType.Integer)
+                return property.Value.Value<int>();
+
+            return int.TryParse(property.Value.ToString(), out var value) ? value : 0;
         }
 
         public static void LoadMaps()
