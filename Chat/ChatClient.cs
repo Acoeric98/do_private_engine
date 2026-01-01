@@ -219,7 +219,8 @@ namespace Ow.Chat
                     "/reconnect - Chat kapcsolat újraindítása.",
                     "/w <játékos> <üzenet> - Privát üzenet küldése.",
                     "/duel <játékos> - Párbaj meghívás küldése.",
-                    "/users - Online játékosok listázása."
+                    "/users - Online játékosok listázása.",
+                    "/ausers - Összes online játékos és ID listázása."
                 };
 
                 if (Permission == Permissions.ADMINISTRATOR || Permission == Permissions.CHAT_MODERATOR)
@@ -781,6 +782,20 @@ namespace Ow.Chat
                 users = users.Remove(users.Length - 2);
 
                 Send($"dq%Users online {GameManager.GameSessions.Values.Where(x => x.Player.RankId != 21).Count()}: {users}#");
+            }
+            else if (cmd == "/ausers")
+            {
+                var sessions = GameManager.GameSessions.Values.ToList();
+
+                if (!sessions.Any())
+                {
+                    Send("dq%Users online 0: #");
+                    return;
+                }
+
+                var users = string.Join(", ", sessions.Select(session => $"{session.Player.Name} ({session.Player.Id})"));
+
+                Send($"dq%Users online {sessions.Count}: {users}#");
             }
             else if (cmd == "/system" && Permission == Permissions.ADMINISTRATOR)
             {
