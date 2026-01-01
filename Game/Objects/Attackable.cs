@@ -293,9 +293,21 @@ namespace Ow.Game.Objects
 
                 bool reward = true;
                 var changeType = ChangeType.INCREASE;
+                var honorChangeType = ChangeType.INCREASE;
+                var honorApplied = false;
+                var friendlyFireKill = false;
+                var targetFactionId = this is Player playerTarget ? playerTarget.FactionId : -1;
 
                 if (this is Pet && (this as Pet).Owner == destroyerPlayer)
                     changeType = ChangeType.DECREASE;
+
+                honorChangeType = changeType;
+
+                if (this is Player targetPlayer && destroyerPlayer.FactionId == targetPlayer.FactionId && !Duel.InDuel(targetPlayer))
+                {
+                    honorChangeType = ChangeType.DECREASE;
+                    friendlyFireKill = true;
+                }
 
                 if (this is Character)
                 {
@@ -334,7 +346,8 @@ namespace Ow.Game.Objects
                     {
                         destroyerPlayer.ChangeData(DataType.CREDITS, credits);
                         destroyerPlayer.ChangeData(DataType.EXPERIENCE, experience);
-                        destroyerPlayer.ChangeData(DataType.HONOR, honor, changeType);
+                        destroyerPlayer.ChangeData(DataType.HONOR, honor, honorChangeType);
+                        honorApplied = true;
                         destroyerPlayer.ChangeData(DataType.URIDIUM, uridium, changeType);
                     }
                     else if (this is Npc && destroyerPlayer.Group != null)
@@ -346,12 +359,24 @@ namespace Ow.Game.Objects
 
                         foreach (var member in groupMembers)
                         {
+                            var memberHonorChangeType = friendlyFireKill && member.FactionId == targetFactionId ? ChangeType.DECREASE : changeType;
                             member.ChangeData(DataType.CREDITS, credits);
                             member.ChangeData(DataType.EXPERIENCE, experience);
-                            member.ChangeData(DataType.HONOR, honor, changeType);
+                            member.ChangeData(DataType.HONOR, honor, memberHonorChangeType);
+                            honorApplied = true;
                             member.ChangeData(DataType.URIDIUM, uridium, changeType);
                         }
                     }
+                }
+                else if (friendlyFireKill && honor > 0)
+                {
+                    destroyerPlayer.ChangeData(DataType.HONOR, honor, honorChangeType);
+                    honorApplied = true;
+                }
+
+                if (friendlyFireKill && !honorApplied && honor > 0)
+                {
+                    destroyerPlayer.ChangeData(DataType.HONOR, honor, honorChangeType);
                 }
 
                 if (this is Player)
@@ -431,36 +456,6 @@ namespace Ow.Game.Objects
                             player.SendPacket("0|A|STD|You can't attack your clan's battle station!");
 
                         return false;
-                    }
-                }
-
-                if (relationType != ClanRelationModule.AT_WAR)
-                {
-                    var attackable = true;
-                    var packet = "";
-
-                    if (target is Player)
-                    {
-                        if (!EventManager.JackpotBattle.InEvent(player) && !Duel.InDuel(player))
-                        {
-                            if (FactionId == target.FactionId)
-                                packet = "0|A|STD|You can't attack members of your own company!";
-                            else if (Clan.Id != 0 && target.Clan.Id != 0 && Clan.Id == target.Clan.Id)
-                                packet = "0|A|STD|You can't attack members of your own clan!";
-
-                            if (packet != "")
-                                attackable = false;
-                        }
-
-                        if (!attackable)
-                        {
-                            player.DisableAttack(player.Settings.InGameSettings.selectedLaser);
-
-                            if (sendMessage)
-                                player.SendPacket(packet);
-
-                            return false;
-                        }
                     }
                 }
 
