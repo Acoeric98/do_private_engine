@@ -65,20 +65,79 @@ namespace Ow.Game.Objects.Players.Managers
         }
     }
 
+    public class BootyKeysBase
+    {
+        public int GreenKeys { get; set; }
+        public int RedKeys { get; set; }
+        public int BlueKeys { get; set; }
+        public int SilverKeys { get; set; }
+        public int GoldKeys { get; set; }
+
+        [JsonIgnore]
+        public int TotalKeys => GreenKeys + RedKeys + BlueKeys + SilverKeys + GoldKeys;
+
+        public int GetKeyCount(BootyKeyType keyType)
+        {
+            return keyType switch
+            {
+                BootyKeyType.Green => GreenKeys,
+                BootyKeyType.Red => RedKeys,
+                BootyKeyType.Blue => BlueKeys,
+                BootyKeyType.Silver => SilverKeys,
+                BootyKeyType.Gold => GoldKeys,
+                _ => 0
+            };
+        }
+
+        public bool TryConsume(BootyKeyType keyType)
+        {
+            if (GetKeyCount(keyType) <= 0) return false;
+
+            switch (keyType)
+            {
+                case BootyKeyType.Green:
+                    GreenKeys--;
+                    break;
+                case BootyKeyType.Red:
+                    RedKeys--;
+                    break;
+                case BootyKeyType.Blue:
+                    BlueKeys--;
+                    break;
+                case BootyKeyType.Silver:
+                    SilverKeys--;
+                    break;
+                case BootyKeyType.Gold:
+                    GoldKeys--;
+                    break;
+            }
+
+            return true;
+        }
+    }
+
+    public enum BootyKeyType
+    {
+        Green,
+        Red,
+        Blue,
+        Silver,
+        Gold
+    }
+
     public class ItemsBase
     {
-        public int BootyKeys = 0;
+        public BootyKeysBase BootyKeys { get; set; } = new BootyKeysBase();
 
-        public ItemsBase(int bootyKeys)
+        public ItemsBase()
         {
-            BootyKeys = bootyKeys;
         }
     }
 
     public class EquipmentBase
     {
         public ConfigsBase Configs = new ConfigsBase(0, 0, 0, 0, 0, 0, 0, 0);
-        public ItemsBase Items = new ItemsBase(0);
+        public ItemsBase Items = new ItemsBase();
 
         public EquipmentBase(ConfigsBase configs, ItemsBase items)
         {

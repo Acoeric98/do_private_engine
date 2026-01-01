@@ -1,5 +1,6 @@
 ﻿using Ow.Game.Movements;
 using Ow.Game.Objects.Collectables;
+using Ow.Game.Objects.Players.Managers;
 using Ow.Game.Ticks;
 using Ow.Managers;
 using Ow.Net.netty;
@@ -51,9 +52,10 @@ namespace Ow.Game.Objects
                 {
                     if (!Character.Moving)
                     {
-                        bool needsKey = this is RedBooty || this is GreenBooty || this is BlueBooty || this is GoldBooty || this is SilverBooty;
+                        var bootyKeyType = GetBootyKeyType();
+                        bool needsKey = bootyKeyType.HasValue;
 
-                        if (!needsKey || (needsKey && Character is Player player && player.Equipment.Items.BootyKeys >= 1))
+                        if (!needsKey || (needsKey && Character is Player player && player.Equipment?.Items?.BootyKeys != null && player.Equipment.Items.BootyKeys.GetKeyCount(bootyKeyType.Value) >= 1))
                         {
                             if (collectTime.AddSeconds(Seconds) < DateTime.Now)
                             {
@@ -77,6 +79,40 @@ namespace Ow.Game.Objects
                 */
         }
 
+        private BootyKeyType? GetBootyKeyType()
+        {
+            if (this is GreenBooty)
+                return BootyKeyType.Green;
+            if (this is RedBooty)
+                return BootyKeyType.Red;
+            if (this is BlueBooty)
+                return BootyKeyType.Blue;
+            if (this is SilverBooty)
+                return BootyKeyType.Silver;
+            if (this is GoldBooty)
+                return BootyKeyType.Gold;
+            return null;
+        }
+
+        private string GetAutoBuyNotActiveMessage(BootyKeyType keyType)
+        {
+            switch (keyType)
+            {
+                case BootyKeyType.Blue:
+                    return "0|A|STM|msg_booty-key-blue_auto_buy_not_active";
+                case BootyKeyType.Silver:
+                    return "0|A|STM|msg_booty-key-silver_auto_buy_not_active";
+                case BootyKeyType.Red:
+                    return "0|A|STM|msg_booty-key-red_auto_buy_not_active";
+                case BootyKeyType.Green:
+                    return "0|A|STM|msg_booty-key-green_auto_buy_not_active";
+                case BootyKeyType.Gold:
+                    return "0|A|STM|msg_booty-key-gold_auto_buy_not_active";
+                default:
+                    return string.Empty;
+            }
+        }
+
         public void CancelCollection()
         {
             Character.Collecting = false;
@@ -92,20 +128,15 @@ namespace Ow.Game.Objects
                 pet.SendPacketToInRangePlayers(packet);
 
 
-		    if ((this is BlueBooty || this is SilverBooty || this is RedBooty || this is GreenBooty || this is GoldBooty) &&
-                Character is Player p &&
-                p.Equipment.Items.BootyKeys <= 0)
+		    if (Character is Player p)
             {
-                if (this is BlueBooty)
-                    p.SendPacket("0|A|STM|msg_booty-key-blue_auto_buy_not_active");
-                else if (this is SilverBooty)
-                    p.SendPacket("0|A|STM|msg_booty-key-silver_auto_buy_not_active");
-                else if (this is RedBooty)
-                    p.SendPacket("0|A|STM|msg_booty-key-red_auto_buy_not_active");
-                else if (this is GreenBooty)
-                    p.SendPacket("0|A|STM|msg_booty-key-green_auto_buy_not_active");
-                else if (this is GoldBooty)
-                    p.SendPacket("0|A|STM|msg_booty-key-gold_auto_buy_not_active");
+                var bootyKeyType = GetBootyKeyType();
+                if (bootyKeyType.HasValue && (p.Equipment?.Items?.BootyKeys?.GetKeyCount(bootyKeyType.Value) ?? 0) <= 0)
+                {
+                    var message = GetAutoBuyNotActiveMessage(bootyKeyType.Value);
+                    if (!string.IsNullOrEmpty(message))
+                        p.SendPacket(message);
+                }
             }
 /*
 sdfsdf

@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Ow.Game.Movements;
+using Ow.Game.Objects.Players.Managers;
 using Ow.Game.Objects.Stations;
 using Ow.Managers;
 using Ow.Managers.MySQLManager;
@@ -39,9 +40,11 @@ namespace Ow.Game.Objects.Collectables
                 GrantRandomBooster(player);
             }
 
-            player.Equipment.Items.BootyKeys--;
-
-            player.SendPacket($"0|A|BK|{player.Equipment.Items.BootyKeys}");
+            if (player?.Equipment?.Items?.BootyKeys != null && player.Equipment.Items.BootyKeys.TryConsume(BootyKeyType.Silver))
+            {
+                QueryManager.SavePlayer.BootyKeys(player);
+                player.SendPacket($"0|A|BK|{player.Equipment.Items.BootyKeys.TotalKeys}");
+            }
         }
 
         public override byte[] GetCollectableCreateCommand()
