@@ -48,6 +48,31 @@ namespace Ow.Managers
                 using (var mySqlClient = SqlDatabaseManager.GetClient())
                     mySqlClient.ExecuteNonQuery($"UPDATE player_equipment SET modules = '{JsonConvert.SerializeObject(player.Storage.BattleStationModules)}' WHERE userId = {player.Id}");
             }
+
+            public static void BootyKeys(Player player)
+            {
+                using (var mySqlClient = SqlDatabaseManager.GetClient())
+                {
+                    var row = mySqlClient.ExecuteQueryRow($"SELECT items FROM player_equipment WHERE userId = {player.Id}");
+                    if (row == null) return;
+
+                    var itemsJson = row["items"].ToString();
+                    var itemsObject = string.IsNullOrWhiteSpace(itemsJson) ? new JObject() : JObject.Parse(itemsJson);
+                    var bootyKeys = player?.Equipment?.Items?.BootyKeys ?? new BootyKeysBase();
+
+                    itemsObject["bootyKeys"] = JObject.FromObject(new
+                    {
+                        greenKeys = bootyKeys.GreenKeys,
+                        redKeys = bootyKeys.RedKeys,
+                        blueKeys = bootyKeys.BlueKeys,
+                        silverKeys = bootyKeys.SilverKeys,
+                        goldKeys = bootyKeys.GoldKeys
+                    });
+
+                    var serialized = JsonConvert.SerializeObject(itemsObject).Replace("'", "\\'");
+                    mySqlClient.ExecuteNonQuery($"UPDATE player_equipment SET items = '{serialized}' WHERE userId = {player.Id}");
+                }
+            }
         }
 
         public class ChatFunctions
@@ -189,9 +214,10 @@ namespace Ow.Managers
                         player.Storage.BattleStationModules = JsonConvert.DeserializeObject<List<ModuleBase>>(row["modules"].ToString());
                         player.SkillTree = JsonConvert.DeserializeObject<SkillTreeBase>(row["skill_points"].ToString());
 
-                        dynamic items = JsonConvert.DeserializeObject(row["items"].ToString());
+                        var itemsJson = row["items"].ToString();
+                        var itemsObject = string.IsNullOrWhiteSpace(itemsJson) ? new JObject() : JObject.Parse(itemsJson);
 
-                        if (items["pet"] == "true")
+                        if (itemsObject["pet"] != null && itemsObject["pet"].ToString() == "true")
                             player.Pet = new Pet(player);
                     }
                 }
@@ -227,7 +253,9 @@ namespace Ow.Managers
 
                     foreach (DataRow row in equipment.Rows)
                     {
-                        dynamic items = JsonConvert.DeserializeObject(row["items"].ToString());
+                        var itemsJson = row["items"].ToString();
+                        var itemsObject = string.IsNullOrWhiteSpace(itemsJson) ? new JObject() : JObject.Parse(itemsJson);
+                        var bootyKeys = ParseBootyKeys(itemsObject["bootyKeys"]);
 
                         for (var i = 1; i <= 2; i++)
                         {
@@ -290,9 +318,15 @@ namespace Ow.Managers
                         speed[1] += Maths.GetPercentage(speed[1], 20);
 
                         var configsBase = new ConfigsBase(hitpoints[0], damage[0], shield[0], speed[0], hitpoints[1], damage[1], shield[1], speed[1]);
-                        var itemsBase = new ItemsBase(0);//TODO = new ItemsBase((int)items["bootyKeys"]);
+                        var itemsBase = new ItemsBase
+                        {
+                            BootyKeys = bootyKeys
+                        };
 
                         player.Equipment = new EquipmentBase(configsBase, itemsBase);
+
+                        if (itemsObject["pet"] != null && itemsObject["pet"].ToString() == "true")
+                            player.Pet = new Pet(player);
                     }
                 }
             }
@@ -300,6 +334,36 @@ namespace Ow.Managers
             {
                 Logger.Log("error_log", $"- [QueryManager.cs] SetEquipment({player.Id}) exception: {e}");
             }
+        }
+
+        private static BootyKeysBase ParseBootyKeys(JToken bootyKeysToken)
+        {
+            var bootyKeys = new BootyKeysBase();
+
+            if (bootyKeysToken == null)
+                return bootyKeys;
+
+            try
+            {
+                if (bootyKeysToken.Type == JTokenType.Integer)
+                {
+                    bootyKeys.GreenKeys = bootyKeysToken.Value<int>();
+                }
+                else if (bootyKeysToken.Type == JTokenType.Object)
+                {
+                    bootyKeys.GreenKeys = bootyKeysToken.Value<int?>("greenKeys") ?? 0;
+                    bootyKeys.RedKeys = bootyKeysToken.Value<int?>("redKeys") ?? 0;
+                    bootyKeys.BlueKeys = bootyKeysToken.Value<int?>("blueKeys") ?? 0;
+                    bootyKeys.SilverKeys = bootyKeysToken.Value<int?>("silverKeys") ?? 0;
+                    bootyKeys.GoldKeys = bootyKeysToken.Value<int?>("goldKeys") ?? 0;
+                }
+            }
+            catch (Exception e)
+            {
+                Logger.Log("error_log", $"- [QueryManager.cs] ParseBootyKeys exception: {e}");
+            }
+
+            return bootyKeys;
         }
 
         public static void LoadMaps()

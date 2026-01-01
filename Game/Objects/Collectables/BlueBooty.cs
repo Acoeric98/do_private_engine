@@ -1,5 +1,6 @@
 ﻿using Ow.Game.Movements;
 using Ow.Game.Objects;
+using Ow.Game.Objects.Players.Managers;
 using Ow.Game.Objects.Stations;
 using Ow.Managers;
 using Ow.Net.netty.commands;
@@ -20,9 +21,11 @@ namespace Ow.Game.Objects.Collectables
         {
             GrantBattleStationModule(player);
 
-            player.Equipment.Items.BootyKeys--;
-            QueryManager.SavePlayer.Information(player);
-            player.SendPacket($"0|A|BK|{player.Equipment.Items.BootyKeys}");
+            if (player?.Equipment?.Items?.BootyKeys != null && player.Equipment.Items.BootyKeys.TryConsume(BootyKeyType.Blue))
+            {
+                QueryManager.SavePlayer.BootyKeys(player);
+                player.SendPacket($"0|A|BK|{player.Equipment.Items.BootyKeys.TotalKeys}");
+            }
         }
 
         public override byte[] GetCollectableCreateCommand()
