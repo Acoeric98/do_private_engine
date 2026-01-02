@@ -249,6 +249,12 @@ namespace Ow.Game.Objects.Players.Managers
 
         public void UpdateAttacker(Attackable target, Player player)
         {
+            if (target is Player targetPlayer && targetPlayer.FactionId == player.FactionId && !Duel.InDuel(targetPlayer))
+            {
+                if (!player.Attackers.ContainsKey(targetPlayer.Id) && !targetPlayer.Storage.StartedFriendlyFire)
+                    player.Storage.StartedFriendlyFire = true;
+            }
+
             if (!target.Destroyed)
             {
                 if (target.MainAttacker == null)
