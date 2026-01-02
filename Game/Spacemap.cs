@@ -165,10 +165,16 @@ namespace Ow.Game
             {
                 foreach (var otherCharacter in Characters.Values.Where(x => x.Id != character.Id && !x.Equals(character)))
                 {
-                    if (character.InRange(otherCharacter, otherCharacter.RenderRange))
+                    var otherCharacterVisible = !otherCharacter.Invisible;
+
+                    if (otherCharacterVisible && character.InRange(otherCharacter, otherCharacter.RenderRange))
+                    {
                         character.AddInRangeCharacter(otherCharacter);
-                    else if (character.SelectedCharacter == null || (character.SelectedCharacter != null && !character.SelectedCharacter.Equals(otherCharacter)))
+                    }
+                    else if (otherCharacter.Invisible || character.SelectedCharacter == null || !character.SelectedCharacter.Equals(otherCharacter))
+                    {
                         character.RemoveInRangeCharacter(otherCharacter);
+                    }
                 }
 
                 if (character is Player player)
