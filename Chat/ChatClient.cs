@@ -264,6 +264,7 @@ namespace Ow.Chat
                         "/rmtitle <userId> <permanent (0|1)> - Cím eltávolítása.",
                         "/id <pilotName> - Játékos azonosítójának lekérdezése.",
                         "/reward <userId> <typeId> <mennyiség> - Jutalom adása (1=uridium, 2=credits, 3=honor, 4=experience).",
+                        "/cd0 - Az összes játékos cooldownjának 5 másodpercre állítása.",
                         "/restart <másodperc> - Szerver újraindításának időzítése."
                     });
                 }
@@ -889,7 +890,15 @@ namespace Ow.Chat
                     GameManager.ChatClients[player.Id].Send($"dq%You got {amount} {rewardName} from {gameSession.Player.Name}.#");
                 }
             }
-            
+            else if (cmd == "/cd0" && Permission == Permissions.ADMINISTRATOR)
+            {
+                const int targetSeconds = 5;
+                foreach (var session in GameManager.GameSessions.Values)
+                    session.Player?.ReduceCooldownsToSeconds(targetSeconds);
+
+                GameManager.SendChatSystemMessage($"All player cooldowns were set to {targetSeconds} seconds by {gameSession.Player.Name}.");
+            }
+
             else
             {
                 if (!cmd.StartsWith("/"))

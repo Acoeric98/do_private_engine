@@ -137,6 +137,20 @@ namespace Ow.Game.Objects
             InitializeAbilities();
         }
 
+        public void ReduceCooldownsToSeconds(int seconds)
+        {
+            void ReduceEndTime(ref DateTime endTime)
+            {
+                if (endTime == DateTime.MinValue || endTime <= DateTime.Now) return;
+                var targetTime = DateTime.Now.AddSeconds(seconds);
+                if (endTime > targetTime)
+                    endTime = targetTime;
+            }
+
+            ReduceEndTime(ref _kamikazeCooldownEndTime);
+            ReduceEndTime(ref _hpLinkCooldownEndTime);
+        }
+
         public override void Tick()
         {
             if (Activated)
