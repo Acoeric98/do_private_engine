@@ -778,6 +778,69 @@ namespace Ow.Game.Objects
             }
         }
 
+        public void ReduceCooldownsToSeconds(int seconds)
+        {
+            var targetMilliseconds = Math.Max(0, seconds * 1000);
+
+            void ReduceCooldown(ref DateTime startTime, int cooldownMilliseconds, string lootId = null)
+            {
+                if (cooldownMilliseconds <= targetMilliseconds || startTime == DateTime.MinValue) return;
+
+                var readyTime = startTime.AddMilliseconds(cooldownMilliseconds);
+                if (readyTime <= DateTime.Now) return;
+
+                startTime = DateTime.Now.AddMilliseconds(targetMilliseconds - cooldownMilliseconds);
+
+                if (!string.IsNullOrEmpty(lootId))
+                    SendCooldown(lootId, targetMilliseconds);
+            }
+
+            void ReduceCooldownSeconds(ref DateTime startTime, double cooldownSeconds)
+            {
+                if (cooldownSeconds * 1000 <= targetMilliseconds || startTime == DateTime.MinValue) return;
+
+                var readyTime = startTime.AddSeconds(cooldownSeconds);
+                if (readyTime <= DateTime.Now) return;
+
+                startTime = DateTime.Now.AddSeconds(seconds - cooldownSeconds);
+            }
+
+            ReduceCooldown(ref AttackManager.SmbCooldown, TimeManager.SMB_COOLDOWN, AmmunitionManager.SMB_01);
+            ReduceCooldown(ref AttackManager.IshCooldown, TimeManager.ISH_COOLDOWN, AmmunitionManager.ISH_01);
+            ReduceCooldown(ref AttackManager.EmpCooldown, TimeManager.EMP_COOLDOWN, AmmunitionManager.EMP_01);
+            ReduceCooldown(ref AttackManager.mineCooldown, TimeManager.MINE_COOLDOWN);
+            ReduceCooldown(ref AttackManager.dcr_250Cooldown, TimeManager.DCR_250_COOLDOWN, AmmunitionManager.DCR_250);
+            ReduceCooldown(ref AttackManager.pld8Cooldown, TimeManager.PLD8_COOLDOWN, AmmunitionManager.PLD_8);
+            ReduceCooldown(ref AttackManager.r_ic3Cooldown, TimeManager.R_IC3_COOLDOWN, AmmunitionManager.R_IC3);
+            ReduceCooldown(ref AttackManager.wiz_xCooldown, TimeManager.WIZARD_COOLDOWN, AmmunitionManager.WIZ_X);
+            ReduceCooldownSeconds(ref AttackManager.lastRocketAttack, RocketSpeed);
+            ReduceCooldown(ref CpuManager.cloakCooldown, CpuManager.CloakCooldownTime, CpuManager.CLK_XL);
+
+            if (TechManager != null)
+            {
+                if (TechManager.PrecisionTargeter != null && !TechManager.PrecisionTargeter.Active)
+                    ReduceCooldown(ref TechManager.PrecisionTargeter.cooldown, TimeManager.PRECISION_TARGETER_DURATION + TimeManager.PRECISION_TARGETER_COOLDOWN, TechManager.TECH_PRECISION_TARGETER);
+                if (TechManager.BattleRepairBot != null && !TechManager.BattleRepairBot.Active)
+                    ReduceCooldown(ref TechManager.BattleRepairBot.cooldown, TimeManager.BATTLE_REPAIR_BOT_DURATION + TimeManager.BATTLE_REPAIR_BOT_COOLDOWN, TechManager.TECH_BATTLE_REPAIR_BOT);
+                if (TechManager.EnergyLeech != null && !TechManager.EnergyLeech.Active)
+                    ReduceCooldown(ref TechManager.EnergyLeech.cooldown, TimeManager.ENERGY_LEECH_DURATION + TimeManager.ENERGY_LEECH_COOLDOWN, TechManager.TECH_ENERGY_LEECH);
+                if (TechManager.BackupShields != null)
+                    ReduceCooldown(ref TechManager.BackupShields.cooldown, TimeManager.BACKUP_SHIELD_COOLDOWN, TechManager.TECH_BACKUP_SHIELDS);
+                if (TechManager.ChainImpulse != null)
+                    ReduceCooldown(ref TechManager.ChainImpulse.cooldown, TimeManager.CHAIN_IMPULSE_COOLDOWN, TechManager.TECH_CHAIN_IMPULSE);
+            }
+
+            foreach (var skill in Storage.Skills.Values)
+            {
+                if (skill.Active) continue;
+                ReduceCooldown(ref skill.cooldown, skill.Duration + skill.Cooldown, skill.LootId);
+            }
+
+            Pet?.ReduceCooldownsToSeconds(seconds);
+
+            UpdateCurrentCooldowns();
+        }
+
         public void SelectEntity(int entityId)
         {
             if (AttackManager.Attacking)
