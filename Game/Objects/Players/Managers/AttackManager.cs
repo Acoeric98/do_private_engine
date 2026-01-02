@@ -1,4 +1,5 @@
 ﻿using Ow.Game.Objects;
+using Ow.Game.Events;
 using Ow.Game.Objects.Players.Techs;
 using Ow.Game.Objects.Stations;
 using Ow.Managers;
@@ -249,7 +250,9 @@ namespace Ow.Game.Objects.Players.Managers
 
         public void UpdateAttacker(Attackable target, Player player)
         {
-            if (target is Player targetPlayer && targetPlayer.FactionId == player.FactionId && !Duel.InDuel(targetPlayer))
+            var targetPlayer = target as Player;
+
+            if (targetPlayer != null && targetPlayer.FactionId == player.FactionId && !Duel.InDuel(targetPlayer))
             {
                 if (!player.Attackers.ContainsKey(targetPlayer.Id) && !targetPlayer.Storage.StartedFriendlyFire)
                     player.Storage.StartedFriendlyFire = true;
