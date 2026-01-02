@@ -51,6 +51,8 @@ namespace Ow.Game.Objects
         public Duel Duel { get; set; }
         public Uba Uba = null;
 
+        public bool StartedFriendlyFire { get; set; }
+
         public DateTime KillscreenPortalRepairTime = new DateTime();
         public DateTime KillscreenDeathLocationRepairTime = new DateTime();
 

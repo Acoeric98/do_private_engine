@@ -212,6 +212,7 @@ namespace Ow.Game.Objects
                 player.CurrentInRangePortalId = -1;
                 player.Storage.InRangeAssets.Clear();
                 player.KillScreen(destroyer, destructionType);
+                player.Storage.StartedFriendlyFire = false;
             }
             else if (this is BattleStation battleStation)
             {
@@ -305,8 +306,12 @@ namespace Ow.Game.Objects
 
                 if (this is Player targetPlayer && destroyerPlayer.FactionId == targetPlayer.FactionId && !Duel.InDuel(targetPlayer))
                 {
-                    honorChangeType = ChangeType.DECREASE;
                     friendlyFireKill = true;
+
+                    var destroyerInitiatedFriendlyFire = destroyerPlayer.Storage.StartedFriendlyFire;
+                    var targetInitiatedFriendlyFire = targetPlayer.Storage.StartedFriendlyFire;
+
+                    honorChangeType = targetInitiatedFriendlyFire && !destroyerInitiatedFriendlyFire ? ChangeType.INCREASE : ChangeType.DECREASE;
                 }
 
                 if (this is Character)
