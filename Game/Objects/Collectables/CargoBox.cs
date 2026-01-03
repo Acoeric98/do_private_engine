@@ -43,6 +43,18 @@ namespace Ow.Game.Objects.Collectables
             player.ChangeData(DataType.HONOR, honor);
             player.ChangeData(DataType.URIDIUM, uridium);
             player.ChangeData(DataType.CREDITS, credits);
+
+            if (Spaceball && EventManager.Spaceball != null && EventManager.Spaceball.Active && player != null)
+            {
+                var bootyKeys = player?.Equipment?.Items?.BootyKeys;
+                if (bootyKeys != null)
+                {
+                    bootyKeys.GreenKeys++;
+                    QueryManager.SavePlayer.BootyKeys(player);
+                    player.SendPacket($"0|A|BK|{bootyKeys.TotalKeys}");
+                    player.SendPacket("0|A|STD|Kaptál egy zöld booty kulcsot a Spaceball esemény alatt!");
+                }
+            }
         }
 
         public override byte[] GetCollectableCreateCommand()

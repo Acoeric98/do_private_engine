@@ -42,6 +42,7 @@ namespace Ow.Game.Objects.Collectables
 
             if (player?.Equipment?.Items?.BootyKeys != null && player.Equipment.Items.BootyKeys.TryConsume(BootyKeyType.Green))
             {
+                GrantBonusKey(player);
                 QueryManager.SavePlayer.BootyKeys(player);
                 player.SendPacket($"0|A|BK|{player.Equipment.Items.BootyKeys.TotalKeys}");
             }
@@ -66,6 +67,42 @@ namespace Ow.Game.Objects.Collectables
         {
             UpdateItemsInventory(player, itemKey);
             player.SendPacket($"0|A|STD|{message}");
+        }
+
+        private void GrantBonusKey(Player player)
+        {
+            const double chance = 0.1;
+            if (Randoms.random.NextDouble() > chance) return;
+
+            var keyTypes = new[]
+            {
+                BootyKeyType.Red,
+                BootyKeyType.Blue,
+                BootyKeyType.Gold,
+                BootyKeyType.Silver
+            };
+
+            var bonusKeyType = keyTypes[Randoms.random.Next(keyTypes.Length)];
+
+            switch (bonusKeyType)
+            {
+                case BootyKeyType.Red:
+                    player.Equipment.Items.BootyKeys.RedKeys++;
+                    break;
+                case BootyKeyType.Blue:
+                    player.Equipment.Items.BootyKeys.BlueKeys++;
+                    break;
+                case BootyKeyType.Gold:
+                    player.Equipment.Items.BootyKeys.GoldKeys++;
+                    break;
+                case BootyKeyType.Silver:
+                    player.Equipment.Items.BootyKeys.SilverKeys++;
+                    break;
+                default:
+                    return;
+            }
+
+            player.SendPacket($"0|A|STD|Bónusz kulcsot kaptál: {bonusKeyType} booty!");
         }
 
         private void UpdateItemsInventory(Player player, string itemKey)
