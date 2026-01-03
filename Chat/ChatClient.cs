@@ -16,11 +16,13 @@ using System.Linq;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 using Ow.Game;
 using static Ow.Game.GameSession;
 using System.Collections.Concurrent;
 using Ow.Managers.MySQLManager;
 using Ow.Game.Objects.Collectables;
+using Ow.Game.Objects.Stations;
 
 namespace Ow.Chat
 {
@@ -246,6 +248,7 @@ namespace Ow.Chat
                         "/tp <mapId> <x> <y> - Ugrás adott pályára koordinátákkal.",
                         "/ptp <userId> <mapId> <x> <y> - Játékos áthelyezése adott pályára és pozícióra.",
                         "/set_portal <mapId> <x> <y> <targetMapId> <targetX> <targetY> - Portál létrehozása a pályán.",
+                        "/set_cbs <name> <mapId> <clanId> <x> <y> <inBuildingState> <buildTimeInMinutes> <buildTime yyyy-MM-dd HH:mm:ss> <deflectorActive> <deflectorSecondsLeft> <deflectorTime yyyy-MM-dd HH:mm:ss> <visualModifiers json> <modules json> <active (0|1)> - Clan Battle Station sor beszúrása/frissítése.",
                         "/move <userId> <mapId> - Játékos mozgatása pálya 0,0 koordinátára.",
                         "/teleport <userId> - Saját hajó áthelyezése a megadott játékoshoz.",
                         "/pos - Jelenlegi pozíciód kijelzése.",
@@ -578,6 +581,109 @@ namespace Ow.Chat
                 new Portal(map, portalPosition, portalTargetPosition, targetMapId, portalBase.GraphicId, portalBase.FactionId, portalBase.Visible, portalBase.Working);
 
                 Send($"dq%Portal added on map {mapId} at X: {mapX}, Y: {mapY} -> map {targetMapId} ({targetX}, {targetY}).#");
+            }
+            else if (cmd == "/set_cbs" && Permission == Permissions.ADMINISTRATOR)
+            {
+                var args = message.Split(' ');
+                if (args.Length < 17)
+                {
+                    Send($"dq%Usage: /set_cbs <name> <mapId> <clanId> <x> <y> <inBuildingState> <buildTimeInMinutes> <buildTime yyyy-MM-dd HH:mm:ss> <deflectorActive> <deflectorSecondsLeft> <deflectorTime yyyy-MM-dd HH:mm:ss> <visualModifiers json> <modules json> <active (0|1)>#");
+                    return;
+                }
+
+                var name = args[1];
+                if (!int.TryParse(args[2], out var mapId) ||
+                    !int.TryParse(args[3], out var clanId) ||
+                    !int.TryParse(args[4], out var positionX) ||
+                    !int.TryParse(args[5], out var positionY) ||
+                    !int.TryParse(args[6], out var inBuildingState) ||
+                    !int.TryParse(args[7], out var buildTimeInMinutes) ||
+                    !int.TryParse(args[10], out var deflectorActive) ||
+                    !int.TryParse(args[11], out var deflectorSecondsLeft) ||
+                    !int.TryParse(args[16], out var active))
+                {
+                    Send($"dq%Invalid numeric value. Please check the parameters and try again.#");
+                    return;
+                }
+
+                if (!DateTime.TryParse($"{args[8]} {args[9]}", out var buildTime) ||
+                    !DateTime.TryParse($"{args[12]} {args[13]}", out var deflectorTime))
+                {
+                    Send($"dq%Invalid date format. Use yyyy-MM-dd HH:mm:ss.#");
+                    return;
+                }
+
+                List<int> visualModifiers;
+                try
+                {
+                    visualModifiers = JsonConvert.DeserializeObject<List<int>>(args[14]) ?? new List<int>();
+                }
+                catch
+                {
+                    Send($"dq%Invalid visual modifier JSON. Use a JSON array, e.g. [].#");
+                    return;
+                }
+
+                List<EquippedModuleBase> modules;
+                try
+                {
+                    modules = JsonConvert.DeserializeObject<List<EquippedModuleBase>>(args[15]) ?? new List<EquippedModuleBase>();
+                }
+                catch
+                {
+                    Send($"dq%Invalid modules JSON. Use a JSON array, e.g. [].#");
+                    return;
+                }
+
+                var spacemap = GameManager.GetSpacemap(mapId);
+                if (spacemap == null)
+                {
+                    Send($"dq%The map with id {mapId} does not exist.#");
+                    return;
+                }
+
+                var clan = GameManager.GetClan(clanId);
+                if (clan == null)
+                {
+                    Send($"dq%The clan with id {clanId} does not exist.#");
+                    return;
+                }
+
+                var visualJson = JsonConvert.SerializeObject(visualModifiers).Replace("'", "\\'");
+                var modulesJson = JsonConvert.SerializeObject(modules).Replace("'", "\\'");
+                var escapedName = name.Replace("'", "\\'");
+
+                using (var mySqlClient = SqlDatabaseManager.GetClient())
+                {
+                    mySqlClient.ExecuteNonQuery($"INSERT INTO server_battlestations (name, mapId, clanId, positionX, positionY, inBuildingState, buildTimeInMinutes, buildTime, deflectorActive, deflectorSecondsLeft, deflectorTime, visualModifiers, modules, active) " +
+                        $"VALUES ('{escapedName}', {mapId}, {clanId}, {positionX}, {positionY}, {inBuildingState}, {buildTimeInMinutes}, '{buildTime:yyyy-MM-dd HH:mm:ss}', {deflectorActive}, {deflectorSecondsLeft}, '{deflectorTime:yyyy-MM-dd HH:mm:ss}', '{visualJson}', '{modulesJson}', {active}) " +
+                        $"ON DUPLICATE KEY UPDATE mapId = VALUES(mapId), clanId = VALUES(clanId), positionX = VALUES(positionX), positionY = VALUES(positionY), inBuildingState = VALUES(inBuildingState), buildTimeInMinutes = VALUES(buildTimeInMinutes), buildTime = VALUES(buildTime), deflectorActive = VALUES(deflectorActive), deflectorSecondsLeft = VALUES(deflectorSecondsLeft), deflectorTime = VALUES(deflectorTime), visualModifiers = VALUES(visualModifiers), modules = VALUES(modules), active = VALUES(active)");
+                }
+
+                if (active != 0)
+                {
+                    if (GameManager.BattleStations.TryGetValue(name, out var existing))
+                        existing.Spacemap.Activatables.TryRemove(existing.Id, out _);
+
+                    var battleStation = new BattleStation(name, spacemap, new Position(positionX, positionY), clan, modules, Convert.ToBoolean(inBuildingState), buildTimeInMinutes, buildTime, Convert.ToBoolean(deflectorActive), deflectorSecondsLeft, deflectorTime, visualModifiers);
+                    GameManager.BattleStations.AddOrUpdate(name, battleStation, (key, value) => battleStation);
+
+                    foreach (var session in GameManager.GameSessions.Values)
+                    {
+                        var player = session.Player;
+                        if (player != null && player.Spacemap != null && player.Spacemap.Id == spacemap.Id)
+                        {
+                            short relationType = player.Clan.Id != 0 && battleStation.Clan.Id != 0 ? battleStation.Clan.GetRelation(player.Clan) : (short)0;
+                            player.SendCommand(battleStation.GetAssetCreateCommand(relationType));
+                        }
+                    }
+                }
+                else if (GameManager.BattleStations.TryRemove(name, out var inactiveStation))
+                {
+                    inactiveStation.Spacemap.Activatables.TryRemove(inactiveStation.Id, out _);
+                }
+
+                Send($"dq%CBS entry for '{name}' saved (active={(active != 0 ? "yes" : "no")}).#");
             }
             else if (cmd == "/move" && Permission == Permissions.ADMINISTRATOR)
             {
