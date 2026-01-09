@@ -121,7 +121,7 @@ namespace Ow.Game.Objects
 
             if (Character is Player player)
             {
-                //player.SendPacket($"0|LM|ST|SLC");
+                player.SendPacket("0|LM|ST|SLC");
                 player.SendPacket(packet);
             }
             else if (Character is Pet pet)
@@ -174,7 +174,7 @@ sdfsdf
 
             if (Character is Player player)
             {
-                //player.SendPacket($"0|LM|ST|SLA|{Seconds}");
+                player.SendPacket($"0|LM|ST|SLA|{Seconds}");
                 player.SendPacket(packet);
             }
             else if (Character is Pet pet)
