@@ -54,7 +54,7 @@ namespace Ow.Game
         public const int CITADEL = 69;
         public const int CITADEL_VETERAN = 159;
         public const int CITADEL_ELITE = 160;
-        public const int SURGEON = 156;
+        public const int SURGEONS = 156;
 
         public List<int> G_CHAMPIONS = new List<int>()
         {
