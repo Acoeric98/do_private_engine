@@ -115,7 +115,6 @@ namespace Ow.Game.Objects.Collectables
                     var itemsJson = itemsRow?["items"]?.ToString();
                     var items = string.IsNullOrEmpty(itemsJson) ? new JObject() : JsonConvert.DeserializeObject<JObject>(itemsJson) ?? new JObject();
 
-                    IncrementItem(items, itemKey);
                     IncrementItem(items, $"{itemKey}Count");
 
                     var serializedItems = JsonConvert.SerializeObject(items).Replace("'", "\\'");
