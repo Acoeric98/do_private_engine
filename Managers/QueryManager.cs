@@ -53,11 +53,6 @@ namespace Ow.Managers
             {
                 using (var mySqlClient = SqlDatabaseManager.GetClient())
                 {
-                    var row = mySqlClient.ExecuteQueryRow($"SELECT items FROM player_equipment WHERE userId = {player.Id}");
-                    if (row == null) return;
-
-                    var itemsJson = row["items"].ToString();
-                    var itemsObject = string.IsNullOrWhiteSpace(itemsJson) ? new JObject() : JObject.Parse(itemsJson);
                     var bootyKeys = player?.Equipment?.Items?.BootyKeys ?? new BootyKeysBase();
 
                     var bootyKeysObject = JObject.FromObject(new
@@ -68,11 +63,6 @@ namespace Ow.Managers
                         silverKeys = bootyKeys.SilverKeys,
                         goldKeys = bootyKeys.GoldKeys
                     });
-
-                    itemsObject["bootyKeys"] = bootyKeysObject;
-
-                    var serialized = JsonConvert.SerializeObject(itemsObject).Replace("'", "\\'");
-                    mySqlClient.ExecuteNonQuery($"UPDATE player_equipment SET items = '{serialized}' WHERE userId = {player.Id}");
 
                     try
                     {
@@ -267,14 +257,7 @@ namespace Ow.Managers
                     {
                         var itemsJson = row["items"].ToString();
                         var itemsObject = string.IsNullOrWhiteSpace(itemsJson) ? new JObject() : JObject.Parse(itemsJson);
-                        var bootyKeys = ParseBootyKeys(itemsObject["bootyKeys"]);
-
-                        if (bootyKeys.TotalKeys <= 0)
-                        {
-                            var fallbackBootyKeys = LoadBootyKeysFromAccounts(mySqlClient, player.Id);
-                            if (fallbackBootyKeys != null)
-                                bootyKeys = fallbackBootyKeys;
-                        }
+                        var bootyKeys = LoadBootyKeysFromAccounts(mySqlClient, player.Id) ?? new BootyKeysBase();
 
                         for (var i = 1; i <= 2; i++)
                         {
