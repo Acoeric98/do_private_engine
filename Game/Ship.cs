@@ -54,16 +54,17 @@ namespace Ow.Game
         public const int CITADEL = 69;
         public const int CITADEL_VETERAN = 159;
         public const int CITADEL_ELITE = 160;
+        public const int SURGEON = 156;
 
         public List<int> G_CHAMPIONS = new List<int>()
         {
             57, 155, 445, 446, 447, 448, 449, 450, 451, 452, 453, 454, 455, 456, 457, 458, 459, 460, 461, 462, 463, 464, 465, 466, 467, 468, 469, 470, 471, 472
         };
 
-        public static List<int> SURGEONS = new List<int>()
-        {
-            156, 473, 474
-        };
+        //public static List<int> SURGEONS = new List<int>()
+        //{
+        //    156, 473, 474
+        //};
 
         public static List<int> SENTINELS = new List<int>()
         {
