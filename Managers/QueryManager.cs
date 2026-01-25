@@ -219,7 +219,8 @@ namespace Ow.Managers
                         var itemsJson = row["items"].ToString();
                         var itemsObject = string.IsNullOrWhiteSpace(itemsJson) ? new JObject() : JObject.Parse(itemsJson);
 
-                        if (itemsObject["pet"] != null && itemsObject["pet"].ToString() == "true")
+                        var petToken = itemsObject["pet"];
+                        if (petToken != null && bool.TryParse(petToken.ToString(), out var petEnabled) && petEnabled)
                             player.Pet = new Pet(player);
                     }
                 }
@@ -327,7 +328,8 @@ namespace Ow.Managers
 
                         player.Equipment = new EquipmentBase(configsBase, itemsBase);
 
-                        if (itemsObject["pet"] != null && itemsObject["pet"].ToString() == "true")
+                        var petToken = itemsObject["pet"];
+                        if (petToken != null && bool.TryParse(petToken.ToString(), out var petEnabled) && petEnabled)
                             player.Pet = new Pet(player);
                     }
                 }
