@@ -564,7 +564,7 @@ namespace Ow.Game.Objects.Players.Managers
 
             leftItems.Add("user", "title_user");
             leftItems.Add("ship", "title_ship");
-            //leftItems.Add("ship_warp", "ttip_shipWarp_btn");
+            leftItems.Add("ship_warp", "ttip_shipWarp_btn");
             leftItems.Add("chat", "title_chat");
             leftItems.Add("group", "title_group");
             leftItems.Add("minimap", "title_map");
