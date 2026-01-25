@@ -570,7 +570,7 @@ namespace Ow.Game.Objects.Players.Managers
             leftItems.Add("minimap", "title_map");
             leftItems.Add("spacemap", "title_spacemap");
             leftItems.Add("log", "title_log");
-            if(Player.Pet != null)
+            if (Player.Pet != null || !string.IsNullOrWhiteSpace(Player.PetName))
                 leftItems.Add("pet", "title_pet");
             if (EventManager.Spaceball.Active)
                 leftItems.Add("spaceball", "title_spaceball");
