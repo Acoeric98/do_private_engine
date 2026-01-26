@@ -552,6 +552,10 @@ namespace Ow.Game.Objects.Players.Managers
             var windowSettings = Player.Settings.Window;
             var gameplaySettings = Player.Settings.Gameplay;
             var y2tSettings = Player.Settings.ClassY2T;
+            if (string.IsNullOrWhiteSpace(windowSettings.barState))
+            {
+                windowSettings.barState = new WindowBase().barState;
+            }
             Player.SendCommand(UserSettingsCommand.write(
                 new QualitySettingsModule(qualitySettings.notSet, qualitySettings.qualityAttack, qualitySettings.qualityBackground, qualitySettings.qualityPresetting, qualitySettings.qualityCustomized, qualitySettings.qualityPoizone, qualitySettings.qualityShip, qualitySettings.qualityEngine, qualitySettings.qualityExplosion, qualitySettings.qualityCollectable, qualitySettings.qualityEffect),
                 new DisplaySettingsModule(displaySettings.notSet, displaySettings.displayPlayerNames, displaySettings.displayResources, displaySettings.displayBonusBoxes, displaySettings.displayHitpointBubbles, displaySettings.displayChat, displaySettings.displayDrones, displaySettings.displayFreeCargoBoxes, displaySettings.displayNotFreeCargoBoxes, displaySettings.showNotOwnedItems, displaySettings.displayWindowsBackground, displaySettings.var12P, displaySettings.displayNotifications, displaySettings.preloadUserShips, displaySettings.dragWindowsAlways, displaySettings.hoverShips, displaySettings.showPremiumQuickslotBar, displaySettings.allowAutoQuality, displaySettings.varb3N, displaySettings.displaySetting3DqualityAntialias, displaySettings.varp3M, displaySettings.displaySetting3DqualityEffects, displaySettings.displaySetting3DqualityLights, displaySettings.displaySetting3DqualityTextures, displaySettings.var03r, displaySettings.displaySetting3DsizeTextures, displaySettings.displaySetting3DtextureFiltering, displaySettings.proActionBarEnabled, displaySettings.proActionBarKeyboardInputEnabled, displaySettings.proActionBarAutohideEnabled),

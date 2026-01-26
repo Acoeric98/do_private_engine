@@ -20,7 +20,10 @@ namespace Ow.Net.netty.handlers
             var player = gameSession.Player;
             var windowSettings = player.Settings.Window;
 
-            windowSettings.barState = read.barStatesAsString;
+            if (!string.IsNullOrWhiteSpace(read.barStatesAsString))
+            {
+                windowSettings.barState = read.barStatesAsString;
+            }
             windowSettings.hideAllWindows = read.hideAllWindows;
             windowSettings.scale = read.scaleFactor;
             windowSettings.gameFeatureBarLayoutType = read.gameFeatureBarLayoutType;
