@@ -13,11 +13,13 @@ namespace Ow.Net.netty.commands
 
         public List<int> mapIdList;     
         public int price = 0;
+        public short currencyType = PriceModule.URIDIUM;
 
-        public JumpCPUPriceMappingModule(int price, List<int> mapIdList)
+        public JumpCPUPriceMappingModule(int price, List<int> mapIdList, short currencyType = PriceModule.URIDIUM)
         {
             this.price = price;
             this.mapIdList = mapIdList;
+            this.currencyType = currencyType;
         }
 
         public byte[] write()
@@ -28,8 +30,7 @@ namespace Ow.Net.netty.commands
             {
                 param1.writeInt(id << 11 | id >> 21);
             }
-            param1.writeInt(this.price >> 1 | this.price << 31);
-            param1.writeShort(5013);
+            param1.write(new PriceModule(currencyType, price).write());
             return param1.Message.ToArray();
         }
     }
