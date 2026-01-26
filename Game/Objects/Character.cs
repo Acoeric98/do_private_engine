@@ -132,6 +132,9 @@ namespace Ow.Game.Objects
 
                     if (this is Player player)
                     {
+                        if (character.Invisible)
+                            return success;
+
                         short relationType = character.Clan.Id != 0 && Clan.Id != 0 ? Clan.GetRelation(character.Clan) : (short)0;
 
                         if (character is Player)
