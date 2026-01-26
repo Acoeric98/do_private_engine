@@ -165,13 +165,13 @@ namespace Ow.Game
             {
                 foreach (var otherCharacter in Characters.Values.Where(x => x.Id != character.Id && !x.Equals(character)))
                 {
-                    var otherCharacterVisible = !otherCharacter.Invisible;
+                    var inRange = character.InRange(otherCharacter, otherCharacter.RenderRange);
 
-                    if (otherCharacterVisible && character.InRange(otherCharacter, otherCharacter.RenderRange))
+                    if (inRange)
                     {
                         character.AddInRangeCharacter(otherCharacter);
                     }
-                    else if (otherCharacter.Invisible || character.SelectedCharacter == null || !character.SelectedCharacter.Equals(otherCharacter))
+                    else if (character.SelectedCharacter == null || !character.SelectedCharacter.Equals(otherCharacter))
                     {
                         character.RemoveInRangeCharacter(otherCharacter);
                     }
