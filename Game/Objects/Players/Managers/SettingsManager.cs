@@ -466,20 +466,25 @@ namespace Ow.Game.Objects.Players.Managers
 
         public static string[] CpusCategory =
         {
-            "equipment_extra_cpu_aim-01", "equipment_extra_cpu_aim-02", "equipment_extra_cpu_ajp-01",
-            "equipment_extra_cpu_alb-x", "equipment_extra_cpu_anti-z1", "equipment_extra_cpu_anti-z1-xl",
-            "equipment_extra_cpu_arol-x", "equipment_extra_cpu_cl04k-m", "equipment_extra_cpu_cl04k-xl",
+        "equipment_extra_cpu_arol-x","equipment_extra_cpu_aim-02","equipment_extra_cpu_anti-z1-xl",
+        "equipment_extra_cpu_ajp-01","equipment_extra_cpu_rllb-x","equipment_extra_cpu_jp-02",
+        /*
+            "equipment_extra_cpu_aim-01",
+            "equipment_extra_cpu_alb-x", "equipment_extra_cpu_anti-z1",
+            "equipment_extra_cpu_cl04k-m", "equipment_extra_cpu_cl04k-xl",
             "equipment_extra_cpu_cl04k-xs", "equipment_extra_cpu_dr-01", "equipment_extra_cpu_dr-02",
-            "equipment_extra_cpu_fb-x", "equipment_extra_cpu_jp-01", "equipment_extra_cpu_jp-02",
+            "equipment_extra_cpu_fb-x", "equipment_extra_cpu_jp-01", 
             "equipment_extra_cpu_min-t01", "equipment_extra_cpu_min-t02", "equipment_extra_cpu_nc-agb",
             "equipment_extra_cpu_nc-awb", "equipment_extra_cpu_nc-awl", "equipment_extra_cpu_nc-awr",
             "equipment_extra_cpu_nc-rrb", "equipment_extra_cpu_nc-rrb-x", "equipment_extra_cpu_rb-x",
-            "equipment_extra_cpu_rd-x", "equipment_extra_cpu_rllb-x", "equipment_extra_cpu_rok-t01",
+            "equipment_extra_cpu_rd-x",  "equipment_extra_cpu_rok-t01",
             "equipment_extra_cpu_sle-01", "equipment_extra_cpu_sle-02", "equipment_extra_cpu_sle-03",
             "equipment_extra_cpu_sle-04", "equipment_extra_hmd-07", "equipment_extra_repbot_rep-1",
             "equipment_extra_repbot_rep-2", "equipment_extra_repbot_rep-3", "equipment_extra_repbot_rep-4",
             "equipment_extra_repbot_rep-s", "equipment_weapon_rocketlauncher_hst-1",
             "equipment_weapon_rocketlauncher_hst-2", "equipment_weapon_rocketlauncher_not_present"
+
+            */
         };
 
         public static string[] BuyCategory =
