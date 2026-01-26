@@ -957,7 +957,7 @@ namespace Ow.Game.Objects
 
             Spacemap = GameManager.GetSpacemap(mapId);
 
-            Spacemap.AddAndInitPlayer(this);
+            Spacemap.AddAndInitPlayer(this, true);
             Storage.Jumping = false;
         }
 
