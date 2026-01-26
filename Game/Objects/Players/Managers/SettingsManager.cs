@@ -461,7 +461,7 @@ namespace Ow.Game.Objects.Players.Managers
         public static string[] MinesCategory =
         {
                 "ammunition_mine_acm-01", "ammunition_mine_empm-01", "ammunition_mine_sabm-01",
-                "ammunition_mine_ddm-01", "ammunition_mine_slm-01"//, "ammunition_mine_im-01"
+                "ammunition_mine_ddm-01", "ammunition_mine_slm-01", "ammunition_mine_im-01"
         };
 
         public static string[] CpusCategory =
@@ -569,7 +569,7 @@ namespace Ow.Game.Objects.Players.Managers
 
             leftItems.Add("user", "title_user");
             leftItems.Add("ship", "title_ship");
-            //leftItems.Add("ship_warp", "ttip_shipWarp_btn");
+            leftItems.Add("ship_warp", "ttip_shipWarp_btn");
             leftItems.Add("chat", "title_chat");
             leftItems.Add("group", "title_group");
             leftItems.Add("minimap", "title_map");
