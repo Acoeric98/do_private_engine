@@ -21,7 +21,7 @@ namespace Ow.Game.Objects.Players.Managers
 
         public AttackManager(Player player) : base(player) { RocketLauncher = new RocketLauncher(Player); }
 
-        private static double GetMissProbability(Character target, double baseProbability)
+        private static double GetMissProbability(Attackable target, double baseProbability)
         {
             var missProbability = baseProbability;
 
