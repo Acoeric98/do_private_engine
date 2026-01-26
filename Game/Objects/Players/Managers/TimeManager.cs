@@ -96,5 +96,7 @@ namespace Ow.Game.Objects.Players.Managers
 
         public const int PRECISION_TARGETER_DURATION = 900000;
         public const int PRECISION_TARGETER_COOLDOWN = 300000;
+
+        public const int GALAXY_JUMP_CPU_COOLDOWN = 60000;
     }
 }

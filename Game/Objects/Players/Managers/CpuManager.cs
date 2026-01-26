@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using Ow.Game.Movements;
 using Ow.Game.Objects;
 using Ow.Managers;
 using Ow.Net.netty.commands;
@@ -24,6 +25,7 @@ namespace Ow.Game.Objects.Players.Managers
         public CpuManager(Player player) : base(player) { }
 
         public DateTime cloakCooldown = new DateTime();
+        public DateTime galaxyJumpCooldown = new DateTime();
         public void Cloak()
         {
             if (Player.Spacemap.Options.CloakBlocked || Player.Invisible) return;
@@ -55,6 +57,19 @@ namespace Ow.Game.Objects.Players.Managers
                 EnableRllbX();
             else
                 DisableRllbX();
+        }
+
+        public void GalaxyJump()
+        {
+            if (Player.Storage.Jumping) return;
+
+            if (galaxyJumpCooldown.AddMilliseconds(TimeManager.GALAXY_JUMP_CPU_COOLDOWN) < DateTime.Now || Player.Storage.GodMode)
+            {
+                var basePosition = Player.GetBasePosition();
+                Player.Jump(Player.GetBaseMapId(), new Position(basePosition.X, basePosition.Y));
+                Player.SendCooldown(GALAXY_JUMP_CPU, TimeManager.GALAXY_JUMP_CPU_COOLDOWN);
+                galaxyJumpCooldown = DateTime.Now;
+            }
         }
 
         public void EnableCloak()

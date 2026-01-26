@@ -340,7 +340,8 @@ namespace Ow.Game.Objects.Players.Managers
                 { TechManager.TECH_CHAIN_IMPULSE, "" },
                 { TechManager.TECH_PRECISION_TARGETER, "" },
                 { TechManager.TECH_BACKUP_SHIELDS, "" },
-                { TechManager.TECH_BATTLE_REPAIR_BOT, "" }
+                { TechManager.TECH_BATTLE_REPAIR_BOT, "" },
+                { CpuManager.GALAXY_JUMP_CPU, "" }
         };
 
         public List<BoundKeysBase> BoundKeys = new List<BoundKeysBase>
@@ -914,6 +915,9 @@ namespace Ow.Game.Objects.Players.Managers
                     case CpuManager.CLK_XL:
                         maxTime = Player.CpuManager.CloakCooldownTime;
                         break;
+                    case CpuManager.GALAXY_JUMP_CPU:
+                        maxTime = TimeManager.GALAXY_JUMP_CPU_COOLDOWN;
+                        break;
                 }
 
                 ClientUISlotBarCategoryItemTimerModule categoryTimerModule =
@@ -940,6 +944,8 @@ namespace Ow.Game.Objects.Players.Managers
                     return "ttip_arol_cpu";
                 case CpuManager.AUTO_HELLSTROM_CPU:
                     return "ttip_rllb_cpu";
+                case CpuManager.GALAXY_JUMP_CPU:
+                    return "ttip_jump_cpu";
                 default:
                     return "";
             }
@@ -1221,6 +1227,8 @@ namespace Ow.Game.Objects.Players.Managers
                     return new CooldownTypeModule(CooldownTypeModule.short_138);
                 case CpuManager.AUTO_ROCKET_CPU:
                     return new CooldownTypeModule(CooldownTypeModule.short_1428);
+                case CpuManager.GALAXY_JUMP_CPU:
+                    return new CooldownTypeModule(CooldownTypeModule.short_2642);
 
                 case TechManager.TECH_PRECISION_TARGETER:
                     return new CooldownTypeModule(CooldownTypeModule.ROCKET_PROBABILITY_MAXIMIZER);
@@ -1328,6 +1336,9 @@ namespace Ow.Game.Objects.Players.Managers
                 case CpuManager.CLK_XL:
                     var cloakCooldown = (DateTime.Now - Player.CpuManager.cloakCooldown).TotalMilliseconds;
                     return (int)(Player.CpuManager.CloakCooldownTime - cloakCooldown);
+                case CpuManager.GALAXY_JUMP_CPU:
+                    var galaxyJumpCooldown = (DateTime.Now - Player.CpuManager.galaxyJumpCooldown).TotalMilliseconds;
+                    return (int)(TimeManager.GALAXY_JUMP_CPU_COOLDOWN - galaxyJumpCooldown);
                 case AmmunitionManager.R_310:
                 case AmmunitionManager.PLT_2026:
                 case AmmunitionManager.PLT_2021:
@@ -1982,6 +1993,9 @@ namespace Ow.Game.Objects.Players.Managers
                         break;
                     case CpuManager.AUTO_HELLSTROM_CPU:
                         Player.CpuManager.RllbX();
+                        break;
+                    case CpuManager.GALAXY_JUMP_CPU:
+                        Player.CpuManager.GalaxyJump();
                         break;
                     case AmmunitionManager.SLM_01:
                     case AmmunitionManager.EMPM_01:
