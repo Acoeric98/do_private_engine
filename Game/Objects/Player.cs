@@ -565,6 +565,20 @@ namespace Ow.Game.Objects
             }
         }
 
+        public double EvasionChance
+        {
+            get
+            {
+                switch (SettingsManager.Player.Settings.InGameSettings.selectedFormation)
+                {
+                    case DroneManager.STAR_FORMATION:
+                        return 0.15;
+                    default:
+                        return 0;
+                }
+            }
+        }
+
         public bool UpdateActivatable(Activatable pEntity, bool pInRange)
         {
             if (Storage.InRangeAssets.ContainsKey(pEntity.Id))
