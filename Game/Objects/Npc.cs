@@ -51,13 +51,24 @@ namespace Ow.Game.Objects
         public DateTime lastAttackTime = new DateTime();
         public void Attack()
         {
-            var damage = AttackManager.RandomizeDamage(Damage, (Storage.underPLD8 ? 0.5 : 0.1));
             var target = SelectedCharacter;
 
             if (!TargetDefinition(target, false)) return;
 
             if (target is Player player && player.AttackManager.EmpCooldown.AddMilliseconds(TimeManager.EMP_DURATION) > DateTime.Now)
                 return;
+
+            var missProbability = 0.1;
+            if (target is Player targetPlayer)
+            {
+                if (targetPlayer.Storage.underPLD8)
+                    missProbability += 0.5;
+
+                missProbability += targetPlayer.EvasionChance;
+            }
+
+            missProbability = Math.Min(1.0, missProbability);
+            var damage = AttackManager.RandomizeDamage(Damage, missProbability);
 
             if (lastAttackTime.AddSeconds(1) < DateTime.Now)
             {
