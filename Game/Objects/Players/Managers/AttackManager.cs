@@ -56,7 +56,11 @@ namespace Ow.Game.Objects.Players.Managers
                         return;
                     }
 
-                    var damage = RandomizeDamage((GetDamageMultiplier() * Player.Damage), (Player.Storage.underPLD8 ? 0.5 : 0.1));
+                    var missProbability = (Player.Storage.underPLD8 ? 0.5 : 0.1);
+                    if (target is Player targetPlayer)
+                        missProbability = Math.Min(1.0, missProbability + targetPlayer.EvasionChance);
+
+                    var damage = RandomizeDamage((GetDamageMultiplier() * Player.Damage), missProbability);
 
                     if (Player.Storage.Spectrum)
                         damage -= Maths.GetPercentage(damage, 50);
@@ -154,12 +158,16 @@ namespace Ow.Game.Objects.Players.Managers
 
             UpdateAttacker(enemy, Player);
 
+            var missProbability = Player.RocketMissProbability;
+            if (enemy is Player enemyPlayer)
+                missProbability = Math.Min(1.0, missProbability + enemyPlayer.EvasionChance);
+
             switch (GetSelectedRocket())
             {
                 case 5:
                 case 6:
                 case 18:
-                    if (Player.RocketMissProbability < Randoms.random.NextDouble() && (!(enemy is Player) || (enemy is Player && (enemy as Player).Attackable())))
+                    if (missProbability < Randoms.random.NextDouble() && (!(enemy is Player) || (enemy is Player && (enemy as Player).Attackable())))
                     {
                         switch (GetSelectedRocket())
                         {
@@ -204,7 +212,7 @@ namespace Ow.Game.Objects.Players.Managers
                     } else AttackMissed(enemy, DamageType.ROCKET);
                     break;
                 default:
-                    var damage = RandomizeDamage(Player.RocketDamage, Player.RocketMissProbability);
+                    var damage = RandomizeDamage(Player.RocketDamage, missProbability);
                     Damage(Player, enemy, DamageType.ROCKET, damage, 0);
                     break;
             }
@@ -225,9 +233,13 @@ namespace Ow.Game.Objects.Players.Managers
             var damage = 0;
             DamageType damageType = GetSelectedLauncherId() == (int)DamageType.SHIELD_ABSORBER_ROCKET_URIDIUM ? DamageType.SHIELD_ABSORBER_ROCKET_URIDIUM : DamageType.ROCKET;
 
+            var missProbability = Player.RocketMissProbability;
+            if (enemy is Player enemyPlayer)
+                missProbability = Math.Min(1.0, missProbability + enemyPlayer.EvasionChance);
+
             for (var i = 0; i < RocketLauncher.CurrentLoad; i++)
             {
-                damage += RandomizeDamage(GetRocketLauncherRocketDamage(), Player.RocketMissProbability);
+                damage += RandomizeDamage(GetRocketLauncherRocketDamage(), missProbability);
             }
 
             RocketLauncher.CurrentLoad = 0;
