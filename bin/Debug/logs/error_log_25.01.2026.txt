@@ -1,0 +1,3 @@
+[25.01.2026 20: 03:34] - [GameClient.cs] Send(byte[]) void exception: System.Net.Sockets.SocketException (0x80004005): Se ha anulado una conexión establecida por el software en su equipo host
+   at System.Net.Sockets.Socket.BeginSend(Byte[] buffer, Int32 offset, Int32 size, SocketFlags socketFlags, AsyncCallback callback, Object state)
+   at Ow.Net.GameClient.Send(Byte[] byteData) in C:\do_server\DarkOrbit 10.0\Net\GameClient.cs:line 128

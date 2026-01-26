@@ -1,0 +1,4 @@
+[03.01.2026 11: 08:52] - [GameServer.cs] AcceptCallback void exception: System.Net.Sockets.SocketException (0x80004005): Se ha forzado la interrupción de una conexión existente por el host remoto
+   at System.Net.Sockets.Socket.BeginReceive(Byte[] buffer, Int32 offset, Int32 size, SocketFlags socketFlags, AsyncCallback callback, Object state)
+   at Ow.Net.GameClient..ctor(Socket handler) in C:\do_server\DarkOrbit 10.0\Net\GameClient.cs:line 28
+   at Ow.Net.GameServer.AcceptCallback(IAsyncResult ar) in C:\do_server\DarkOrbit 10.0\Net\GameServer.cs:line 57

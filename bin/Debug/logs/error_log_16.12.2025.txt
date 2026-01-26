@@ -1,0 +1,8 @@
+[16.12.2025 12: 10:10] - [Program.cs] Main void exception: System.ArgumentException: An item with the same key has already been added.
+   at System.ThrowHelper.ThrowArgumentException(ExceptionResource resource)
+   at System.Collections.Generic.Dictionary`2.Insert(TKey key, TValue value, Boolean add)
+   at System.Collections.Generic.Dictionary`2.Add(TKey key, TValue value)
+   at Ow.Managers.QueryManager.LoadClanDiplomacy(Clan clan) in C:\do_server\DarkOrbit 10.0\Managers\QueryManager.cs:line 494
+   at Ow.Managers.QueryManager.LoadClans() in C:\do_server\DarkOrbit 10.0\Managers\QueryManager.cs:line 472
+   at Ow.Program.LoadDatabase() in C:\do_server\DarkOrbit 10.0\Program.cs:line 83
+   at Ow.Program.Main(String[] args) in C:\do_server\DarkOrbit 10.0\Program.cs:line 32

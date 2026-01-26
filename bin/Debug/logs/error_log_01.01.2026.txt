@@ -1,0 +1,5 @@
+[01.01.2026 16: 41:42] - [ChatClient.cs] Execute void exception: System.OverflowException: Value was either too large or too small for an Int32.
+   at System.Number.ParseInt32(String s, NumberStyles style, NumberFormatInfo info)
+   at System.Convert.ToInt32(String value)
+   at Ow.Chat.ChatClient.SendMessage(String content) in C:\do_server\DarkOrbit 10.0\Chat\ChatClient.cs:line 655
+   at Ow.Chat.ChatClient.Execute(String message) in C:\do_server\DarkOrbit 10.0\Chat\ChatClient.cs:line 139

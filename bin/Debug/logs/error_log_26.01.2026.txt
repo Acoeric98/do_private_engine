@@ -1,0 +1,3 @@
+[26.01.2026 23: 43:18] - [ChatClient.cs] Execute void exception: System.IndexOutOfRangeException: Index was outside the bounds of the array.
+   at Ow.Chat.ChatClient.SendMessage(String content) in C:\do_server\DarkOrbit 10.0\Chat\ChatClient.cs:line 917
+   at Ow.Chat.ChatClient.Execute(String message) in C:\do_server\DarkOrbit 10.0\Chat\ChatClient.cs:line 141

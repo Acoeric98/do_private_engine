@@ -1,0 +1,6 @@
+[25.11.2025 01: 54:18] - [ChatClient.cs] Execute void exception: System.FormatException: Nem megfelelő a bemeneti karakterlánc formátuma.
+   a következő helyen: System.Number.StringToNumber(String str, NumberStyles options, NumberBuffer& number, NumberFormatInfo info, Boolean parseDecimal)
+   a következő helyen: System.Number.ParseInt32(String s, NumberStyles style, NumberFormatInfo info)
+   a következő helyen: System.Convert.ToInt32(String value)
+   a következő helyen: Ow.Chat.ChatClient.SendMessage(String content) hely: G:\HDD1_D\letöltések\do_server\Wolf_Fr Browser\Wolf_Fr Browser\DarkOrbit 10.0\Chat\ChatClient.cs, sor: 532
+   a következő helyen: Ow.Chat.ChatClient.Execute(String message) hely: G:\HDD1_D\letöltések\do_server\Wolf_Fr Browser\Wolf_Fr Browser\DarkOrbit 10.0\Chat\ChatClient.cs, sor: 136

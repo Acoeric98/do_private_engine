@@ -1,0 +1,6 @@
+[02.01.2026 15: 35:06] - [ChatClient.cs] Execute void exception: System.FormatException: Input string was not in a correct format.
+   at System.Number.StringToNumber(String str, NumberStyles options, NumberBuffer& number, NumberFormatInfo info, Boolean parseDecimal)
+   at System.Number.ParseInt32(String s, NumberStyles style, NumberFormatInfo info)
+   at System.Convert.ToInt32(String value)
+   at Ow.Chat.ChatClient.SendMessage(String content) in C:\do_server\DarkOrbit 10.0\Chat\ChatClient.cs:line 810
+   at Ow.Chat.ChatClient.Execute(String message) in C:\do_server\DarkOrbit 10.0\Chat\ChatClient.cs:line 139

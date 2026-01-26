@@ -16,3 +16,21 @@ G:\HDD1_D\letöltések\do_server\Wolf_Fr Browser\Wolf_Fr Browser\DarkOrbit 10.0\
 G:\HDD1_D\letöltések\do_server\Wolf_Fr Browser\Wolf_Fr Browser\DarkOrbit 10.0\obj\Debug\DarkOrbit.csproj.Up2Date
 G:\HDD1_D\letöltések\do_server\Wolf_Fr Browser\Wolf_Fr Browser\DarkOrbit 10.0\obj\Debug\DarkOrbit.exe
 G:\HDD1_D\letöltések\do_server\Wolf_Fr Browser\Wolf_Fr Browser\DarkOrbit 10.0\obj\Debug\DarkOrbit.pdb
+C:\do_server\DarkOrbit 10.0\bin\Debug\DarkOrbit.exe.config
+C:\do_server\DarkOrbit 10.0\bin\Debug\DarkOrbit.exe
+C:\do_server\DarkOrbit 10.0\bin\Debug\DarkOrbit.pdb
+C:\do_server\DarkOrbit 10.0\bin\Debug\Newtonsoft.Json.dll
+C:\do_server\DarkOrbit 10.0\bin\Debug\System.Net.Http.Extensions.dll
+C:\do_server\DarkOrbit 10.0\bin\Debug\System.Net.Http.Formatting.dll
+C:\do_server\DarkOrbit 10.0\bin\Debug\System.Net.Http.Primitives.dll
+C:\do_server\DarkOrbit 10.0\bin\Debug\Newtonsoft.Json.xml
+C:\do_server\DarkOrbit 10.0\bin\Debug\System.Net.Http.Extensions.xml
+C:\do_server\DarkOrbit 10.0\bin\Debug\System.Net.Http.Formatting.xml
+C:\do_server\DarkOrbit 10.0\bin\Debug\System.Net.Http.Primitives.xml
+C:\do_server\DarkOrbit 10.0\obj\Debug\DarkOrbit.csproj.AssemblyReference.cache
+C:\do_server\DarkOrbit 10.0\obj\Debug\DarkOrbit.csproj.SuggestedBindingRedirects.cache
+C:\do_server\DarkOrbit 10.0\obj\Debug\DarkOrbit.exe.config
+C:\do_server\DarkOrbit 10.0\obj\Debug\DarkOrbit.csproj.CoreCompileInputs.cache
+C:\do_server\DarkOrbit 10.0\obj\Debug\DarkOrbit.csproj.Up2Date
+C:\do_server\DarkOrbit 10.0\obj\Debug\DarkOrbit.exe
+C:\do_server\DarkOrbit 10.0\obj\Debug\DarkOrbit.pdb

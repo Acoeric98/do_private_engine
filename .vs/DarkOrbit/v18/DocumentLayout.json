@@ -1,0 +1,37 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\do_server\\DarkOrbit 10.0\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{73A729CE-AA45-4A61-A633-46492024E454}|DarkOrbit.csproj|c:\\do_server\\darkorbit 10.0\\game\\objects\\players\\managers\\attackmanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{73A729CE-AA45-4A61-A633-46492024E454}|DarkOrbit.csproj|solutionrelative:game\\objects\\players\\managers\\attackmanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "AttackManager.cs",
+              "DocumentMoniker": "C:\\do_server\\DarkOrbit 10.0\\Game\\Objects\\Players\\Managers\\AttackManager.cs",
+              "RelativeDocumentMoniker": "Game\\Objects\\Players\\Managers\\AttackManager.cs",
+              "ToolTip": "C:\\do_server\\DarkOrbit 10.0\\Game\\Objects\\Players\\Managers\\AttackManager.cs",
+              "RelativeToolTip": "Game\\Objects\\Players\\Managers\\AttackManager.cs",
+              "ViewState": "AgIAAMEAAAAAAAAAAAAvwNQAAABPAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-01-02T15:50:34.033Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

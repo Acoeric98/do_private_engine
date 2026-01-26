@@ -1,0 +1,5 @@
+[07.12.2025 01: 43:26] - [ChatClient.cs] Execute void exception: System.OverflowException: Az érték túl nagy vagy túl kicsi volt a következő típushoz: Int32.
+   a következő helyen: System.Number.ParseInt32(String s, NumberStyles style, NumberFormatInfo info)
+   a következő helyen: System.Convert.ToInt32(String value)
+   a következő helyen: Ow.Chat.ChatClient.SendMessage(String content) hely: G:\HDD1_D\letöltések\do_server\Wolf_Fr Browser\Wolf_Fr Browser\DarkOrbit 10.0\Chat\ChatClient.cs, sor: 534
+   a következő helyen: Ow.Chat.ChatClient.Execute(String message) hely: G:\HDD1_D\letöltések\do_server\Wolf_Fr Browser\Wolf_Fr Browser\DarkOrbit 10.0\Chat\ChatClient.cs, sor: 138

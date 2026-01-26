@@ -1,0 +1,2 @@
+[31.12.2025 20: 13:23] - [Group.cs] InitializeGroup void exception: System.NullReferenceException: Object reference not set to an instance of an object.
+   at Ow.Game.Objects.Group.InitializeGroup(Player player) in C:\do_server\DarkOrbit 10.0\Game\Objects\Players\Group.cs:line 128

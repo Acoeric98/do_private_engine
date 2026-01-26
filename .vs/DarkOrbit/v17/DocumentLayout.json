@@ -1,0 +1,37 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "G:\\HDD1_D\\let\u00F6lt\u00E9sek\\do_server\\Wolf_Fr Browser\\Wolf_Fr Browser\\DarkOrbit 10.0\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{73A729CE-AA45-4A61-A633-46492024E454}|DarkOrbit.csproj|g:\\hdd1_d\\let\u00F6lt\u00E9sek\\do_server\\wolf_fr browser\\wolf_fr browser\\darkorbit 10.0\\game\\objects\\collectable.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{73A729CE-AA45-4A61-A633-46492024E454}|DarkOrbit.csproj|solutionrelative:game\\objects\\collectable.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "Collectable.cs",
+              "DocumentMoniker": "G:\\HDD1_D\\let\u00F6lt\u00E9sek\\do_server\\Wolf_Fr Browser\\Wolf_Fr Browser\\DarkOrbit 10.0\\Game\\Objects\\Collectable.cs",
+              "RelativeDocumentMoniker": "Game\\Objects\\Collectable.cs",
+              "ToolTip": "G:\\HDD1_D\\let\u00F6lt\u00E9sek\\do_server\\Wolf_Fr Browser\\Wolf_Fr Browser\\DarkOrbit 10.0\\Game\\Objects\\Collectable.cs",
+              "RelativeToolTip": "Game\\Objects\\Collectable.cs",
+              "ViewState": "AgIAABAAAAAAAAAAAAAawJMAAAAdAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-20T09:10:38.635Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
