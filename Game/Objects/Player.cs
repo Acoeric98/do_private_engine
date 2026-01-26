@@ -733,6 +733,7 @@ namespace Ow.Game.Objects
             Settings.Cooldowns[AmmunitionManager.DCR_250] = AttackManager.dcr_250Cooldown.ToString("yyyy-MM-dd HH:mm:ss");
             Settings.Cooldowns[AmmunitionManager.PLD_8] = AttackManager.pld8Cooldown.ToString("yyyy-MM-dd HH:mm:ss");
             Settings.Cooldowns[AmmunitionManager.R_IC3] = AttackManager.r_ic3Cooldown.ToString("yyyy-MM-dd HH:mm:ss");
+            Settings.Cooldowns[CpuManager.GALAXY_JUMP_CPU] = CpuManager.galaxyJumpCooldown.ToString("yyyy-MM-dd HH:mm:ss");
 
             foreach (var skill in Storage.Skills.Values)
                 Settings.Cooldowns[skill.LootId] = Storage.Skills[skill.LootId].cooldown.ToString("yyyy-MM-dd HH:mm:ss");
@@ -756,6 +757,12 @@ namespace Ow.Game.Objects
             {
                 var seconds = (int)(DateTime.Now.Subtract(DateTime.Parse(Settings.Cooldowns[AmmunitionManager.EMP_01]))).TotalSeconds;
                 AttackManager.EmpCooldown = DateTime.Now.AddSeconds(-seconds);
+            }
+
+            if (Settings.Cooldowns[CpuManager.GALAXY_JUMP_CPU] != "")
+            {
+                var seconds = (int)(DateTime.Now.Subtract(DateTime.Parse(Settings.Cooldowns[CpuManager.GALAXY_JUMP_CPU]))).TotalSeconds;
+                CpuManager.galaxyJumpCooldown = DateTime.Now.AddSeconds(-seconds);
             }
 
             if (Settings.Cooldowns["ammunition_mine"] != "")
