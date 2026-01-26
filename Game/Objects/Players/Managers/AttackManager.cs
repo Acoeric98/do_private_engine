@@ -197,15 +197,15 @@ namespace Ow.Game.Objects.Players.Managers
                                 enemy.SendPacketToInRangePlayers("0|n|fx|start|ICY_CUBE|" + enemy.Id + "");
                                 break;
                             case 10:
-                                if (enemy is Player enemyPlayer)
+                                if (enemy is Player dcrEnemyPlayer)
                                 {
-                                    enemyPlayer.Storage.underDCR_250 = true;
-                                    enemyPlayer.Storage.underDCR_250Time = DateTime.Now;
+                                    dcrEnemyPlayer.Storage.underDCR_250 = true;
+                                    dcrEnemyPlayer.Storage.underDCR_250Time = DateTime.Now;
 
-                                    enemyPlayer.SendPacket("0|n|fx|start|SABOTEUR_DEBUFF|" + enemyPlayer.Id + "");
-                                    enemyPlayer.SendCommand(SetSpeedCommand.write(enemyPlayer.Speed, enemyPlayer.Speed));
+                                    dcrEnemyPlayer.SendPacket("0|n|fx|start|SABOTEUR_DEBUFF|" + dcrEnemyPlayer.Id + "");
+                                    dcrEnemyPlayer.SendCommand(SetSpeedCommand.write(dcrEnemyPlayer.Speed, dcrEnemyPlayer.Speed));
 
-                                    enemyPlayer.SendPacketToInRangePlayers("0|n|fx|start|SABOTEUR_DEBUFF|" + enemyPlayer.Id + "");
+                                    dcrEnemyPlayer.SendPacketToInRangePlayers("0|n|fx|start|SABOTEUR_DEBUFF|" + dcrEnemyPlayer.Id + "");
                                 }
                                 break;
                         }
