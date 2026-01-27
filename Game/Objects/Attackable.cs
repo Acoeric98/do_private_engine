@@ -413,7 +413,7 @@ namespace Ow.Game.Objects
 
             if (this is Npc npc)
             {
-                if (npc.Ship.Respawnable)
+                if (npc.AllowRespawn)
                     npc.Respawn();
             }
 

@@ -574,7 +574,11 @@ namespace Ow.Game.Objects.Players.Managers
             else
             {
                 if (target is Npc)
-                    (target as Npc).ReceiveAttack(Player);
+                {
+                    var npcTarget = target as Npc;
+                    npcTarget.ReceiveAttack(Player);
+                    npcTarget.TrySpawnDefenders(Player);
+                }
 
                 var attackHitCommand =
                         AttackHitCommand.write(new AttackTypeModule((short)damageType), Player.Id,
