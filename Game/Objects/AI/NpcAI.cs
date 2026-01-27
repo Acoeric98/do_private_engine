@@ -32,7 +32,9 @@ namespace Ow.Game.Objects.AI
                             {
                                 var player = players as Player;
 
-                                if (player.Storage.IsInDemilitarizedZone || player.Invisible || Npc.Position.DistanceTo(player.Position) > Npc.RenderRange)
+                                var inDefenseZone = Npc.Spacemap?.IsInNpcDefenseZone(player.Position) == true;
+
+                                if (player.Storage.IsInDemilitarizedZone || player.Invisible || inDefenseZone || Npc.Position.DistanceTo(player.Position) > Npc.RenderRange)
                                 {
                                     Npc.Attacking = false;
                                     Npc.Selected = null;
@@ -58,7 +60,7 @@ namespace Ow.Game.Objects.AI
                         }
                         break;
                     case NpcAIOption.FLY_TO_ENEMY:
-                        if (Npc.Selected != null && Npc.Selected is Player && !(Npc.Selected as Player).Storage.IsInDemilitarizedZone && Npc.Position.DistanceTo((Npc.Selected as Player).Position) < Npc.RenderRange)
+                        if (Npc.Selected != null && Npc.Selected is Player && !(Npc.Selected as Player).Storage.IsInDemilitarizedZone && Npc.Spacemap?.IsInNpcDefenseZone((Npc.Selected as Player).Position) != true && Npc.Position.DistanceTo((Npc.Selected as Player).Position) < Npc.RenderRange)
                         {
                             var player = Npc.Selected as Player;
 
@@ -73,7 +75,7 @@ namespace Ow.Game.Objects.AI
                         }
                         break;
                     case NpcAIOption.WAIT_PLAYER_MOVE:
-                        if (Npc.Selected != null && Npc.Selected is Player && !(Npc.Selected as Player).Storage.IsInDemilitarizedZone)
+                        if (Npc.Selected != null && Npc.Selected is Player && !(Npc.Selected as Player).Storage.IsInDemilitarizedZone && Npc.Spacemap?.IsInNpcDefenseZone((Npc.Selected as Player).Position) != true)
                         {
                             var player = Npc.Selected as Player;
 
