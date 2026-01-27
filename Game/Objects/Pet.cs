@@ -247,28 +247,29 @@ namespace Ow.Game.Objects
             if ((Owner.Settings.InGameSettings.selectedLaser == AmmunitionManager.RSB_75 ? lastRSBAttackTime : lastAttackTime).AddSeconds(Owner.Settings.InGameSettings.selectedLaser == AmmunitionManager.RSB_75 ? 3 : 1) < DateTime.Now)
             {
                 int damageShd = 0, damageHp = 0;
+                var attackDamage = AttackManager.RandomizeDamage(Damage, AttackManager.GetMissProbability(target, 0.1));
 
                 if (target is Spaceball)
                 {
                     var spaceball = target as Spaceball;
-                    spaceball.AddDamage(this, Damage);
+                    spaceball.AddDamage(this, attackDamage);
                 }
 
-                double shieldAbsorb = System.Math.Abs(target.ShieldAbsorption - 1);
-
-                if (shieldAbsorb > 1)
-                    shieldAbsorb = 1;
-
-                if ((target.CurrentShieldPoints - Damage) >= 0)
+                if (target.CurrentShieldPoints > 0)
                 {
-                    damageShd = (int)(Damage * shieldAbsorb);
-                    damageHp = Damage - damageShd;
+                    damageShd = (int)(attackDamage * 0.8);
+                    damageHp = attackDamage - damageShd;
+
+                    if (target.CurrentShieldPoints < damageShd)
+                    {
+                        var spillover = damageShd - target.CurrentShieldPoints;
+                        damageShd = target.CurrentShieldPoints;
+                        damageHp += spillover;
+                    }
                 }
                 else
                 {
-                    int newDamage = Damage - target.CurrentShieldPoints;
-                    damageShd = target.CurrentShieldPoints;
-                    damageHp = (int)(newDamage + (damageShd * shieldAbsorb));
+                    damageHp = attackDamage;
                 }
 
                 if ((target.CurrentHitPoints - damageHp) < 0)
@@ -278,7 +279,7 @@ namespace Ow.Game.Objects
 
                 if (target is Player && !(target as Player).Attackable())
                 {
-                    Damage = 0;
+                    attackDamage = 0;
                     damageShd = 0;
                     damageHp = 0;
                 }
@@ -300,7 +301,7 @@ namespace Ow.Game.Objects
                         AttackHitCommand.write(new AttackTypeModule(AttackTypeModule.LASER), Id,
                                              target.Id, target.CurrentHitPoints,
                                              target.CurrentShieldPoints, target.CurrentNanoHull,
-                                             Damage > damageShd ? Damage : damageShd, false);
+                                             attackDamage > damageShd ? attackDamage : damageShd, false);
 
                 SendCommandToInRangePlayers(attackHitCommand);
 
