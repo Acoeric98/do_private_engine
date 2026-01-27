@@ -43,6 +43,7 @@ namespace Ow.Game
 
     class Spacemap : Tick
     {
+        public const int NPC_DEFENSE_ZONE_RANGE = 600;
         public ConcurrentDictionary<int, Character> Characters = new ConcurrentDictionary<int, Character>();
         public ConcurrentDictionary<int, Activatable> Activatables = new ConcurrentDictionary<int, Activatable>();
         public ConcurrentDictionary<int, Object> Objects = new ConcurrentDictionary<int, Object>();
@@ -249,6 +250,23 @@ namespace Ow.Game
                 obj.Value?.Tick();
             }
             */
+        }
+
+        public bool IsInNpcDefenseZone(Position position)
+        {
+            if (position == null)
+                return false;
+
+            foreach (var entity in Activatables.Values)
+            {
+                if (entity is Portal || entity is BattleStation)
+                {
+                    if (position.DistanceTo(entity.Position) <= NPC_DEFENSE_ZONE_RANGE)
+                        return true;
+                }
+            }
+
+            return false;
         }
 
         public bool CheckActivatables(Player Player)
