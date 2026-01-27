@@ -1239,7 +1239,7 @@ namespace Ow.Game.Objects
                 return;
             }
 
-            if (LogoutStartTime.AddSeconds((Premium || RankId == 21) ? 5 : 10) < DateTime.Now)
+            if (LogoutStartTime.AddSeconds(5) < DateTime.Now)
             {
                 SendPacket("0|l|" + Id);
                 GameSession.Disconnect(GameSession.DisconnectionType.NORMAL);

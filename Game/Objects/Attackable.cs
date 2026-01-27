@@ -205,6 +205,7 @@ namespace Ow.Game.Objects
                 if (destroyer is Player && (destroyer as Player).Storage.KilledPlayerIds.Where(x => x == player.Id).Count() <= 13)
                     (destroyer as Player).Storage.KilledPlayerIds.Add(player.Id);
 
+                player.Pet?.Deactivate(true);
                 player.Group?.UpdateTarget(player, new List<command_i3O> { new GroupPlayerDisconnectedModule(true) });
                 player.SkillManager.DisableAllSkills();
                 player.SendCommand(destroyCommand);
