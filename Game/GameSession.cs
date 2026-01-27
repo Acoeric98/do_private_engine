@@ -55,6 +55,7 @@ namespace Ow.Game
                 Player.LastCombatTime = DateTime.Now.AddSeconds(-999);
                 Player.Group?.Leave(Player);
                 Player.DisableAttack(Player.Settings.InGameSettings.selectedLaser);
+                Player.Pet?.Deactivate(true);
                 Duel.RemovePlayer(Player);
                 Program.TickManager.RemoveTick(Player);
                 Player.Spacemap.RemoveCharacter(Player);
