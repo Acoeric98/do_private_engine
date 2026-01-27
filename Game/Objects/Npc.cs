@@ -18,8 +18,11 @@ namespace Ow.Game.Objects
     {
         public NpcAI NpcAI { get; set; }
         public bool Attacking = false;
+        public bool AllowRespawn { get; private set; }
+        public DateTime? DespawnTime { get; private set; }
+        public bool DefenderSpawned { get; private set; }
 
-        public Npc(int id, Ship ship, Spacemap spacemap, Position position) : base(id, ship.Name, 0, ship, position, spacemap, GameManager.GetClan(0))
+        public Npc(int id, Ship ship, Spacemap spacemap, Position position, bool? allowRespawn = null, DateTime? despawnTime = null) : base(id, ship.Name, 0, ship, position, spacemap, GameManager.GetClan(0))
         {
             Spacemap.AddCharacter(this);
 
@@ -31,6 +34,9 @@ namespace Ow.Game.Objects
             MaxShieldPoints = ship.BaseShieldPoints;
             CurrentShieldPoints = MaxShieldPoints;
 
+            AllowRespawn = allowRespawn ?? ship.Respawnable;
+            DespawnTime = despawnTime;
+
             NpcAI = new NpcAI(this);
 
             Program.TickManager.AddTick(this);
@@ -38,6 +44,9 @@ namespace Ow.Game.Objects
 
         public override void Tick()
         {
+            if (HandleDespawn())
+                return;
+
             Movement.ActualPosition(this);
             NpcAI.TickAI();
             CheckShieldPointsRepair();
@@ -46,6 +55,30 @@ namespace Ow.Game.Objects
 
             if (Attacking)
                 Attack();
+        }
+
+        private bool HandleDespawn()
+        {
+            if (!DespawnTime.HasValue || Destroyed)
+                return false;
+
+            if (DespawnTime.Value > DateTime.Now)
+                return false;
+
+            ForceDespawn();
+            return true;
+        }
+
+        private void ForceDespawn()
+        {
+            if (Destroyed)
+                return;
+
+            MainAttacker = null;
+            Attackers.Clear();
+            AllowRespawn = false;
+            DespawnTime = null;
+            Destroy(null, DestructionType.MISC);
         }
 
         public DateTime lastAttackTime = new DateTime();
@@ -164,7 +197,40 @@ namespace Ow.Game.Objects
             Attackers.Clear();
             MainAttacker = null;
             Destroyed = false;
+            AllowRespawn = Ship.Respawnable;
+            DespawnTime = null;
+            DefenderSpawned = false;
 
+        }
+
+        public void TrySpawnDefenders(Player attacker)
+        {
+            if (DefenderSpawned || attacker == null || Ship?.Id != 80 || Spacemap == null)
+                return;
+
+            var defenderShip = GameManager.GetShip(81);
+            if (defenderShip == null)
+                return;
+
+            DefenderSpawned = true;
+
+            for (int i = 0; i < 15; i++)
+            {
+                var spawnPosition = ClampToMap(Position.GetPosOnCircle(Position, Randoms.random.Next(300, 700)));
+                var defender = new Npc(Randoms.CreateRandomID(), defenderShip, Spacemap, spawnPosition, false, DateTime.Now.AddMinutes(15));
+                defender.ReceiveAttack(attacker);
+            }
+        }
+
+        private Position ClampToMap(Position position)
+        {
+            var min = Spacemap.Limits[0];
+            var max = Spacemap.Limits[1];
+
+            var clampedX = Math.Min(Math.Max(position.X, min.X), max.X);
+            var clampedY = Math.Min(Math.Max(position.Y, min.Y), max.Y);
+
+            return new Position(clampedX, clampedY);
         }
 
         public void ReceiveAttack(Character character)
