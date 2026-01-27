@@ -467,12 +467,13 @@ namespace Ow.Game.Objects.Players.Managers
 
         public static string[] CpusCategory =
         {
-        "equipment_extra_cpu_arol-x","equipment_extra_cpu_anti-z1-xl",
-        "equipment_extra_cpu_ajp-01","equipment_extra_cpu_rllb-x","equipment_extra_cpu_jp-02",
+        "equipment_extra_cpu_arol-x","equipment_extra_cpu_cl04k-xl",
+        "equipment_extra_cpu_rllb-x","equipment_extra_cpu_jp-02",
+        "equipment_extra_cpu_anti-z1-xl","equipment_extra_cpu_ajp-01"
         /*
             "equipment_extra_cpu_aim-01","equipment_extra_cpu_aim-02",
             "equipment_extra_cpu_alb-x", "equipment_extra_cpu_anti-z1",
-            "equipment_extra_cpu_cl04k-m", "equipment_extra_cpu_cl04k-xl",
+            "equipment_extra_cpu_cl04k-m", 
             "equipment_extra_cpu_cl04k-xs", "equipment_extra_cpu_dr-01", "equipment_extra_cpu_dr-02",
             "equipment_extra_cpu_fb-x", "equipment_extra_cpu_jp-01", 
             "equipment_extra_cpu_min-t01", "equipment_extra_cpu_min-t02", "equipment_extra_cpu_nc-agb",
