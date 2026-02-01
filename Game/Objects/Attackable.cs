@@ -413,6 +413,7 @@ namespace Ow.Game.Objects
 
             if (this is Npc npc)
             {
+                npc.HandleDefenderWaveOnDeath(destructionType);
                 if (npc.AllowRespawn)
                     npc.Respawn();
             }
