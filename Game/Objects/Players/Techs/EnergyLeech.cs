@@ -53,5 +53,19 @@ namespace Ow.Game.Objects.Players.Techs
             Player.Storage.EnergyLeech = false;
             Active = false;
         }
+
+        public void ReapplyVisualEffectIfActive()
+        {
+            if (!Active)
+                return;
+
+            if (cooldown.AddMilliseconds(TimeManager.ENERGY_LEECH_DURATION) <= DateTime.Now)
+            {
+                Disable();
+                return;
+            }
+
+            Player.AddVisualModifier(VisualModifierCommand.ENERGY_LEECH_ARRAY, 0, "", 0, true);
+        }
     }
 }
