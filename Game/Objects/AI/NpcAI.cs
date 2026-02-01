@@ -14,6 +14,7 @@ namespace Ow.Game.Objects.AI
 
         public NpcAIOption AIOption = NpcAIOption.SEARCH_FOR_ENEMIES;
         private static int ALIEN_DISTANCE_TO_USER = 300;
+        private static int AGGRESSIVE_BUMP_RANGE = 300;
 
         public NpcAI(Npc npc) { Npc = npc; }
 
@@ -31,6 +32,9 @@ namespace Ow.Game.Objects.AI
                             if (players is Player)
                             {
                                 var player = players as Player;
+
+                                if (Npc.Ship.Aggressive && Npc.Position.DistanceTo(player.Position) > AGGRESSIVE_BUMP_RANGE)
+                                    continue;
 
                                 var inDefenseZone = Npc.Spacemap?.IsInNpcDefenseZone(player.Position) == true;
 
