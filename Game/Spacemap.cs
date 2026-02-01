@@ -115,6 +115,24 @@ namespace Ow.Game
                 }
             }
 
+            if (new int[] { 18, 22, 26 }.Contains(Id))
+            {
+                var cubikonShip = GameManager.GetShip(80);
+                if (cubikonShip != null)
+                {
+                    var spawnPositions = new[]
+                    {
+                        new Position(13400, 3900),
+                        new Position(7500, 3900),
+                        new Position(7500, 7900),
+                        new Position(13400, 7900),
+                    };
+
+                    foreach (var spawnPosition in spawnPositions)
+                        new Npc(Randoms.CreateRandomID(), cubikonShip, this, spawnPosition, respawnPosition: spawnPosition);
+                }
+            }
+
             if (PortalBase != null && PortalBase.Count >= 1)
             {
                 foreach (var portal in PortalBase)
