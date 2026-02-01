@@ -35,6 +35,8 @@ namespace Ow.Game.Objects
             CurrentShieldPoints = MaxShieldPoints;
 
             AllowRespawn = allowRespawn ?? ship.Respawnable;
+            if (ship.Id == 81)
+                AllowRespawn = false;
             DespawnTime = despawnTime;
 
             NpcAI = new NpcAI(this);
@@ -197,7 +199,7 @@ namespace Ow.Game.Objects
             Attackers.Clear();
             MainAttacker = null;
             Destroyed = false;
-            AllowRespawn = Ship.Respawnable;
+            AllowRespawn = Ship.Respawnable && Ship.Id != 81;
             DespawnTime = null;
             DefenderSpawned = false;
 
