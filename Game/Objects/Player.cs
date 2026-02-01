@@ -1052,6 +1052,8 @@ namespace Ow.Game.Objects
 
             Spacemap.AddAndInitPlayer(this, Destroyed);
 
+            TechManager?.EnergyLeech?.ReapplyVisualEffectIfActive();
+
             Group?.UpdateTarget(this, new List<command_i3O> { new GroupPlayerDisconnectedModule(false) });
 
             Destroyed = false;
