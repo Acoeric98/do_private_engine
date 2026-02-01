@@ -14,7 +14,7 @@ namespace Ow.Game.Objects.AI
 
         public NpcAIOption AIOption = NpcAIOption.SEARCH_FOR_ENEMIES;
         private static int ALIEN_DISTANCE_TO_USER = 300;
-        private static int AGGRESSIVE_BUMP_RANGE = 300;
+        private static int AGGRESSIVE_BUMP_RANGE = 700;
 
         public NpcAI(Npc npc) { Npc = npc; }
 
