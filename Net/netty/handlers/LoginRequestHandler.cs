@@ -88,8 +88,21 @@ namespace Ow.Net.netty.handlers
                     if (Player.RankId == 21)
                         Player.Premium = true;
 
-                    Player.Spacemap = GameManager.GetSpacemap(Player.GetBaseMapId());
-                    Player.SetPosition(Player.GetBasePosition());
+                    if (QueryManager.TryGetLastLogoutLocation(Player.Id, out var logoutMapId, out var logoutPosition))
+                    {
+                        var logoutMap = GameManager.GetSpacemap(logoutMapId);
+                        if (logoutMap != null)
+                        {
+                            Player.Spacemap = logoutMap;
+                            Player.SetPosition(ClampPositionToMap(logoutPosition, logoutMap));
+                        }
+                    }
+
+                    if (Player.Spacemap == null || Player.Position == null)
+                    {
+                        Player.Spacemap = GameManager.GetSpacemap(Player.GetBaseMapId());
+                        Player.SetPosition(Player.GetBasePosition());
+                    }
                 }
 
                 Program.TickManager.AddTick(Player);
@@ -225,6 +238,19 @@ namespace Ow.Net.netty.handlers
                 Out.WriteLine("UID: " + player.Id + " SendSettings void exception: " + e, "LoginRequestHandler.cs");
                 Logger.Log("error_log", $"- [LoginRequestHandler.cs] SendSettings void exception: {e}");
             }
+        }
+
+        private static Position ClampPositionToMap(Position position, Spacemap map)
+        {
+            if (position == null || map?.Limits == null || map.Limits.Length < 2)
+                return position;
+
+            var min = map.Limits[0];
+            var max = map.Limits[1];
+            var clampedX = Math.Min(Math.Max(position.X, min.X), max.X);
+            var clampedY = Math.Min(Math.Max(position.Y, min.Y), max.Y);
+
+            return new Position(clampedX, clampedY);
         }
     }
 }
