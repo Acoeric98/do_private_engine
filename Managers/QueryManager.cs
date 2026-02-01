@@ -75,6 +75,27 @@ namespace Ow.Managers
                     }
                 }
             }
+
+            public static void LastLogout(Player player)
+            {
+                if (player?.Spacemap == null || player.Position == null) return;
+
+                var position = $"{player.Position.X},{player.Position.Y}";
+
+                using (var mySqlClient = SqlDatabaseManager.GetClient())
+                {
+                    var row = mySqlClient.ExecuteQueryRow($"SELECT id FROM last_logout WHERE id = {player.Id}");
+
+                    if (row != null)
+                    {
+                        mySqlClient.ExecuteNonQuery($"UPDATE last_logout SET `map` = {player.Spacemap.Id}, `pos` = '{position}' WHERE id = {player.Id}");
+                    }
+                    else
+                    {
+                        mySqlClient.ExecuteNonQuery($"INSERT INTO last_logout (id, `map`, `pos`) VALUES ({player.Id}, {player.Spacemap.Id}, '{position}')");
+                    }
+                }
+            }
         }
 
         public class ChatFunctions
@@ -239,6 +260,48 @@ namespace Ow.Managers
                 Logger.Log("error_log", $"- [QueryManager.cs] GetPlayer({playerId}) exception: {e}");
                 return null;
             }
+        }
+
+        public static bool TryGetLastLogoutLocation(int playerId, out int mapId, out Position position)
+        {
+            mapId = 0;
+            position = null;
+
+            using (var mySqlClient = SqlDatabaseManager.GetClient())
+            {
+                var row = mySqlClient.ExecuteQueryRow($"SELECT `map`, `pos` FROM last_logout WHERE id = {playerId} LIMIT 1");
+                if (row == null) return false;
+
+                if (!int.TryParse(row["map"].ToString(), out mapId))
+                    return false;
+
+                var posText = row["pos"]?.ToString();
+                if (!TryParsePosition(posText, out position))
+                    return false;
+            }
+
+            return true;
+        }
+
+        private static bool TryParsePosition(string posText, out Position position)
+        {
+            position = null;
+
+            if (string.IsNullOrWhiteSpace(posText))
+                return false;
+
+            var parts = posText.Split(new[] { ',', ' ', ';', '|' }, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length < 2)
+                return false;
+
+            if (!int.TryParse(parts[0], out var x))
+                return false;
+
+            if (!int.TryParse(parts[1], out var y))
+                return false;
+
+            position = new Position(x, y);
+            return true;
         }
 
         public static void SetEquipment(Player player)

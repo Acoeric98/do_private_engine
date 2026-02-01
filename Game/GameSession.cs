@@ -72,6 +72,7 @@ namespace Ow.Game
         {
             try
             {
+                QueryManager.SavePlayer.LastLogout(Player);
                 Player.Group?.UpdateTarget(Player, new List<command_i3O> { new GroupPlayerDisconnectedModule(true) });
                 Player.UpdateCurrentCooldowns();
                 Player.SaveSettings();
