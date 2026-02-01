@@ -20,6 +20,7 @@ namespace Ow.Game.Objects
         private const int ProtegitShipId = 81;
         private const int ProtegitWaveSize = 15;
         private const int ProtegitWaveRespawnThreshold = 5;
+        private static readonly TimeSpan CubikonRespawnDelay = TimeSpan.FromMinutes(3);
 
         public NpcAI NpcAI { get; set; }
         public bool Attacking = false;
@@ -29,6 +30,8 @@ namespace Ow.Game.Objects
         public int? DefenderOwnerToken { get; private set; }
         public int DefenderSpawnToken { get; private set; }
         private readonly Position RespawnPosition;
+        private DateTime? PendingRespawnTime;
+        private readonly HashSet<int> DefenderIds = new HashSet<int>();
 
         public Npc(int id, Ship ship, Spacemap spacemap, Position position, bool? allowRespawn = null, DateTime? despawnTime = null, Position respawnPosition = null) : base(id, ship.Name, 0, ship, position, spacemap, GameManager.GetClan(0))
         {
@@ -57,6 +60,8 @@ namespace Ow.Game.Objects
         {
             if (HandleDespawn())
                 return;
+            if (HandleRespawn())
+                return;
 
             Movement.ActualPosition(this);
             NpcAI.TickAI();
@@ -77,6 +82,22 @@ namespace Ow.Game.Objects
                 return false;
 
             ForceDespawn();
+            return true;
+        }
+
+        private bool HandleRespawn()
+        {
+            if (!Destroyed)
+                return false;
+
+            if (!PendingRespawnTime.HasValue)
+                return true;
+
+            if (PendingRespawnTime.Value > DateTime.Now)
+                return true;
+
+            PendingRespawnTime = null;
+            PerformRespawn();
             return true;
         }
 
@@ -200,9 +221,23 @@ namespace Ow.Game.Objects
 
         public void Respawn()
         {
+            if (Ship.Id == CubikonShipId)
+            {
+                PendingRespawnTime = DateTime.Now.Add(CubikonRespawnDelay);
+                return;
+            }
+
+            PerformRespawn();
+        }
+
+        private void PerformRespawn()
+        {
             LastCombatTime = DateTime.Now.AddSeconds(-999);
             if (Ship.Id == CubikonShipId)
+            {
                 DefenderSpawnToken++;
+                ClearDefenders();
+            }
 
             CurrentHitPoints = MaxHitPoints;
             CurrentShieldPoints = MaxShieldPoints;
@@ -216,7 +251,6 @@ namespace Ow.Game.Objects
             DespawnTime = null;
             DefenderOwnerId = null;
             DefenderOwnerToken = null;
-
         }
 
         public void TrySpawnDefenders(Player attacker)
@@ -228,8 +262,7 @@ namespace Ow.Game.Objects
             if (defenderShip == null)
                 return;
 
-            var defenderCount = Spacemap.Characters.Values.OfType<Npc>()
-                .Count(npc => npc.Ship?.Id == ProtegitShipId && npc.DefenderOwnerId == Id);
+            var defenderCount = GetDefenderCount();
 
             if (defenderCount > ProtegitWaveRespawnThreshold)
                 return;
@@ -240,6 +273,7 @@ namespace Ow.Game.Objects
                 var defender = new Npc(Randoms.CreateRandomID(), defenderShip, Spacemap, spawnPosition, false, DateTime.Now.AddMinutes(15));
                 defender.DefenderOwnerId = Id;
                 defender.DefenderOwnerToken = DefenderSpawnToken;
+                RegisterDefender(defender);
                 if (attacker != null)
                     defender.ReceiveAttack(attacker);
             }
@@ -250,17 +284,64 @@ namespace Ow.Game.Objects
             if (Ship?.Id != ProtegitShipId || Spacemap == null || DefenderOwnerId == null)
                 return;
 
+            var cubikon = GetDefenderOwner();
+            cubikon?.UnregisterDefender(Id);
+
             if (destructionType == DestructionType.MISC)
                 return;
-
-            var cubikon = Spacemap.Characters.Values.OfType<Npc>()
-                .FirstOrDefault(npc => npc.Id == DefenderOwnerId.Value && npc.Ship?.Id == CubikonShipId && !npc.Destroyed);
 
             if (cubikon == null || DefenderOwnerToken != cubikon.DefenderSpawnToken)
                 return;
 
             var attacker = cubikon.MainAttacker as Player;
             cubikon.TrySpawnDefenders(attacker);
+        }
+
+        private Npc GetDefenderOwner()
+        {
+            if (DefenderOwnerId == null || Spacemap == null)
+                return null;
+
+            return Spacemap.Characters.Values.OfType<Npc>()
+                .FirstOrDefault(npc => npc.Id == DefenderOwnerId.Value && npc.Ship?.Id == CubikonShipId);
+        }
+
+        private void RegisterDefender(Npc defender)
+        {
+            if (Ship?.Id != CubikonShipId || defender == null)
+                return;
+
+            lock (DefenderIds)
+            {
+                DefenderIds.Add(defender.Id);
+            }
+        }
+
+        private void UnregisterDefender(int defenderId)
+        {
+            if (Ship?.Id != CubikonShipId)
+                return;
+
+            lock (DefenderIds)
+            {
+                DefenderIds.Remove(defenderId);
+            }
+        }
+
+        private int GetDefenderCount()
+        {
+            lock (DefenderIds)
+            {
+                return DefenderIds.Count;
+            }
+        }
+
+        private void ClearDefenders()
+        {
+            lock (DefenderIds)
+            {
+                DefenderIds.Clear();
+            }
         }
 
         private Position ClampToMap(Position position)
