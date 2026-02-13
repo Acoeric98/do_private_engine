@@ -346,9 +346,11 @@ namespace Ow.Game.Objects
 
                 if (reward)
                 {
-                    var groupMembers = destroyerPlayer.Group?.Members.Values.Where(x => x.AttackingOrUnderAttack());
+                    var rewardEligibleGroupMembers = destroyerPlayer.Group?.Members.Values
+                        .Where(x => x.AttackingOrUnderAttack(15))
+                        .ToList();
 
-                    if (destroyerPlayer.Group == null || (destroyerPlayer.Group != null && groupMembers.Count() == 0))
+                    if (destroyerPlayer.Group == null || (destroyerPlayer.Group != null && rewardEligibleGroupMembers.Count == 0))
                     {
                         destroyerPlayer.ChangeData(DataType.CREDITS, credits);
                         destroyerPlayer.ChangeData(DataType.EXPERIENCE, experience);
@@ -358,12 +360,12 @@ namespace Ow.Game.Objects
                     }
                     else if (this is Npc && destroyerPlayer.Group != null)
                     {
-                        credits = credits / groupMembers.Count();
-                        experience = experience / groupMembers.Count();
-                        honor = honor / groupMembers.Count();
-                        uridium = uridium / groupMembers.Count();
+                        credits = credits / rewardEligibleGroupMembers.Count;
+                        experience = experience / rewardEligibleGroupMembers.Count;
+                        honor = honor / rewardEligibleGroupMembers.Count;
+                        uridium = uridium / rewardEligibleGroupMembers.Count;
 
-                        foreach (var member in groupMembers)
+                        foreach (var member in rewardEligibleGroupMembers)
                         {
                             var memberHonorChangeType = friendlyFireKill && member.FactionId == targetFactionId ? ChangeType.DECREASE : changeType;
                             member.ChangeData(DataType.CREDITS, credits);
