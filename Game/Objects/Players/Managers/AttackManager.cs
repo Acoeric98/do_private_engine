@@ -347,8 +347,26 @@ namespace Ow.Game.Objects.Players.Managers
                     if (otherPlayer.Position.DistanceTo(Player.Position) > 700) continue;
                     if (!Player.TargetDefinition(otherPlayer, false)) continue;
 
-                    int damage = Maths.GetPercentage(otherPlayer.CurrentHitPoints, 20);
-                    Damage(Player, otherPlayer as Player, DamageType.MINE, damage, false, true, false, false);
+                    var targetPlayer = otherPlayer as Player;
+                    int damage = Maths.GetPercentage(targetPlayer.CurrentHitPoints, 20);
+
+                    if (targetPlayer.CurrentShieldPoints > 0)
+                    {
+                        var shieldDamage = Maths.GetPercentage(damage, 80);
+                        var hpDamage = damage - shieldDamage;
+
+                        if (shieldDamage > targetPlayer.CurrentShieldPoints)
+                        {
+                            hpDamage += shieldDamage - targetPlayer.CurrentShieldPoints;
+                            shieldDamage = targetPlayer.CurrentShieldPoints;
+                        }
+
+                        Damage(Player, targetPlayer, DamageType.MINE, hpDamage, shieldDamage, false, false);
+                    }
+                    else
+                    {
+                        Damage(Player, targetPlayer, DamageType.MINE, damage, 0, true, false);
+                    }
                 }
             }
         }
@@ -710,6 +728,94 @@ namespace Ow.Game.Objects.Players.Managers
                                          target.Id, target.CurrentHitPoints,
                                          target.CurrentShieldPoints, target.CurrentNanoHull,
                                          damage, false);
+
+            attacker.SendCommand(attackHitCommand);
+            attacker.SendCommandToInRangePlayers(attackHitCommand);
+
+            target.UpdateStatus();
+        }
+
+        public static void Damage(Player attacker, Attackable target, DamageType damageType, int damageHp, int damageShd, bool toDestroy, bool missedEffect = true)
+        {
+            if (damageType == DamageType.MINE && target.Invincible) return;
+
+            if (attacker.Invincible && damageType != DamageType.RADIATION)
+                attacker.Storage.DeactiveInvincibilityEffect();
+
+            var targetPlayer = target as Player;
+
+            if (targetPlayer != null)
+            {
+                if (attacker is Player playerAttacker)
+                {
+                    ApplyTargetMarkerBonus(playerAttacker, targetPlayer, ref damageHp);
+                    ApplyTargetMarkerBonus(playerAttacker, targetPlayer, ref damageShd);
+                }
+
+                ApplyFortifyReduction(targetPlayer, ref damageShd, ref damageHp);
+                ApplyCitadelProtection(attacker, targetPlayer, ref damageShd, ref damageHp, damageType);
+            }
+
+            damageHp = Math.Max(0, damageHp);
+            damageShd = Math.Max(0, damageShd);
+
+            if (target is Player && !(target as Player).Attackable())
+            {
+                if (missedEffect)
+                {
+                    var attackMissedCommandToInRange = AttackMissedCommand.write(new AttackTypeModule((short)damageType), target.Id, 0);
+                    var attackMissedCommand = AttackMissedCommand.write(new AttackTypeModule((short)damageType), target.Id, 0);
+                    attacker.SendCommand(attackMissedCommand);
+                    attacker.SendCommandToInRangePlayers(attackMissedCommandToInRange);
+                }
+                return;
+            }
+
+            target.LastCombatTime = DateTime.Now;
+            UpdateBattleStationCombatTime(target);
+
+            if (targetPlayer?.Pet != null && attacker != null)
+                targetPlayer.Pet.NotifyOwnerAttacked(attacker);
+
+            if (damageHp > 0)
+            {
+                if (toDestroy && (damageHp >= target.CurrentHitPoints || target.CurrentHitPoints <= 0))
+                {
+                    if (damageType == DamageType.RADIATION)
+                        target.Destroy(null, DestructionType.RADIATION);
+                    else if (damageType == DamageType.MINE && attacker.Attackers.Count <= 0)
+                        target.Destroy(null, DestructionType.MINE);
+                    else
+                        target.Destroy(attacker, DestructionType.PLAYER);
+                }
+                else
+                {
+                    if (target.CurrentNanoHull > 0)
+                    {
+                        if (target.CurrentNanoHull - damageHp < 0)
+                        {
+                            var nanoDamage = damageHp - target.CurrentNanoHull;
+                            target.CurrentNanoHull = 0;
+                            target.CurrentHitPoints -= nanoDamage;
+                        }
+                        else
+                            target.CurrentNanoHull -= damageHp;
+                    }
+                    else
+                        target.CurrentHitPoints -= damageHp;
+                }
+            }
+
+            if (damageShd > 0)
+                target.CurrentShieldPoints -= Math.Min(damageShd, target.CurrentShieldPoints);
+
+            var totalDamage = damageHp + damageShd;
+
+            var attackHitCommand =
+                    AttackHitCommand.write(new AttackTypeModule((short)damageType), attacker.Id,
+                                         target.Id, target.CurrentHitPoints,
+                                         target.CurrentShieldPoints, target.CurrentNanoHull,
+                                         totalDamage, false);
 
             attacker.SendCommand(attackHitCommand);
             attacker.SendCommandToInRangePlayers(attackHitCommand);
