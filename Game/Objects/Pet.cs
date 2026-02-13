@@ -491,18 +491,19 @@ namespace Ow.Game.Objects
                 Deactivate(true, true);
                 ResetKamikazeState();
 
-                if (Owner.SelectedCharacter == null
-                    && ownerSelectedCharacter != null
+                var previousTargetStillValid = ownerSelectedCharacter != null
                     && !ownerSelectedCharacter.Destroyed
                     && ownerSelectedCharacter != Owner
-                    && ownerSelectedCharacter.Spacemap == Owner.Spacemap)
+                    && ownerSelectedCharacter.Spacemap == Owner.Spacemap;
+
+                if (previousTargetStillValid && Owner.SelectedCharacter == null)
                 {
                     Owner.SelectEntity(ownerSelectedCharacter.Id);
+                }
 
-                    if (ownerWasAttacking && Owner.SelectedCharacter == ownerSelectedCharacter)
-                    {
-                        Owner.EnableAttack(Owner.Settings.InGameSettings.selectedLaser);
-                    }
+                if (ownerWasAttacking && previousTargetStillValid && Owner.SelectedCharacter == ownerSelectedCharacter)
+                {
+                    Owner.EnableAttack(Owner.Settings.InGameSettings.selectedLaser);
                 }
             }
         }
