@@ -7,6 +7,7 @@ using Ow.Utils;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Ow.Game.GalaxyGates
 {
@@ -143,7 +144,7 @@ namespace Ow.Game.GalaxyGates
 
             lock (SyncRoot)
             {
-                if (Runs.Any(run => run.ContainsAnyPlayer(eligiblePlayers)))
+                if (Runs.Any(activeRun => activeRun.ContainsAnyPlayer(eligiblePlayers)))
                 {
                     SendToGroup(player, "Van olyan csoporttag, akinek már fut Hades kapuja.");
                     return false;
@@ -212,7 +213,7 @@ namespace Ow.Game.GalaxyGates
                 return PortalIds.Contains(portalId);
             }
 
-            public void Start()
+            public async void Start()
             {
                 Spacemap.CharacterRemoved += OnCharacterRemoved;
 
@@ -222,6 +223,12 @@ namespace Ow.Game.GalaxyGates
                     if (player == null) continue;
                     JumpPlayer(player, HadesCenter, Spacemap);
                 }
+
+                SendMessage("Minden csoporttag bent van a Hades kapuban. 30 másodperc múlva indul a W1.");
+                await Task.Delay(30000);
+
+                if (Disposed || Completed)
+                    return;
 
                 SendMessage("Hades kapu elindult! W1 érkezik.");
                 SpawnWaveOne();
