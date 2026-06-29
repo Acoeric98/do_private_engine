@@ -18,7 +18,7 @@ namespace Ow.Game.Objects
         public const int LOOT_MODE_RANDOM = 1;
         public const int LOOT_MODE_NEED_BEFORE_GREED = 2;
         public const int LOOT_MODE_WYTIWYG = 3;
-        public const int DEFAULT_MAX_GROUP_SIZE = 7;
+        public const int DEFAULT_MAX_GROUP_SIZE = 8;
 
         public int Id { get; }
         public Player Leader { get; set; }
