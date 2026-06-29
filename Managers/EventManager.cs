@@ -1,4 +1,5 @@
 ﻿using Ow.Game.Events;
+using Ow.Game.GalaxyGates;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,12 +13,14 @@ namespace Ow.Managers
         public static JackpotBattle JackpotBattle { get; set; }
         public static Spaceball Spaceball { get; set; }
         public static UltimateBattleArena UltimateBattleArena { get; set; }
+        public static Hades Hades { get; set; }
 
         public static void InitiateEvents()
         {
             JackpotBattle = new JackpotBattle();
             Spaceball = new Spaceball();
             UltimateBattleArena = new UltimateBattleArena();
+            Hades = new Hades();
         }
     }
 }

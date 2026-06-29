@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using Ow.Game.GalaxyGates;
 using Ow.Game.Movements;
 using Ow.Game.Objects.Stations;
 using Ow.Managers;
@@ -53,6 +54,16 @@ namespace Ow.Game.Objects
                 var player = gameSession.Player;
 
                 if (!Working || GameManager.GetSpacemap(TargetSpaceMapId) == null || TargetPosition == null) return;
+
+                if (Hades.IsEventPortal(this))
+                {
+                    Hades.TryEnter(player);
+                    return;
+                }
+
+                if (Hades.TryUseRunPortal(player, this))
+                    return;
+
                 if (player.Storage.Jumping) return;
 
                 player.Storage.Jumping = true;

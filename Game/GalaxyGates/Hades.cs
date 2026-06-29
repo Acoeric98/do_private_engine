@@ -1,12 +1,495 @@
-﻿using System;
+﻿using Ow.Game.Movements;
+using Ow.Game.Objects;
+using Ow.Game.Objects.Players.Managers;
+using Ow.Managers;
+using Ow.Net.netty.commands;
+using Ow.Utils;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Ow.Game.GalaxyGates
 {
     class Hades
     {
+        public const int HadesMapId = 71;
+        public const int ExitMapId = 16;
+        public const int MinimumPlayers = 2;
+        public const int MaximumPlayers = 8;
+        private const int WaveTwoTriggerRemainingNpcs = 10;
+        private const int FinalHonorReward = 16000000;
+        private const int RewardKeysPerType = 3;
+        private const int EventPortalGraphicId = 1;
+        private const int RestPortalGraphicId = 1;
+        private const int ExitPortalGraphicId = 1;
+
+        private static readonly Position HadesCenter = new Position(10400, 6400);
+        private static readonly Position RestPortalPosition = new Position(10100, 6400);
+        private static readonly Position ExitPortalPosition = new Position(10700, 6400);
+        private static readonly Position ExitTargetPosition = new Position(21000, 13000);
+
+        public static bool Active { get; private set; }
+        public static int EntryMapId { get; private set; }
+        public static Portal EventPortal { get; private set; }
+
+        private static readonly object SyncRoot = new object();
+        private static readonly List<HadesRun> Runs = new List<HadesRun>();
+
+        public static bool StartEvent(int entryMapId, Position entryPosition, out string message)
+        {
+            lock (SyncRoot)
+            {
+                if (Active)
+                {
+                    message = "Hades event is already active.";
+                    return false;
+                }
+
+                var entryMap = GameManager.GetSpacemap(entryMapId);
+                if (entryMap == null || GameManager.GetSpacemap(HadesMapId) == null || GameManager.GetSpacemap(ExitMapId) == null)
+                {
+                    message = "Entry map, Hades map 71, or exit map 16 doesn't exist.";
+                    return false;
+                }
+
+                EntryMapId = entryMapId;
+                EventPortal = new Portal(entryMap, entryPosition, HadesCenter, HadesMapId, EventPortalGraphicId, 0, true, true);
+                GameManager.SendCommandToMap(entryMap.Id, EventPortal.GetAssetCreateCommand());
+
+                Active = true;
+                message = $"Hades event started on map {entryMapId} at X: {entryPosition.X}, Y: {entryPosition.Y}. Target map is fixed to {HadesMapId}.";
+                GameManager.SendPacketToAll("0|A|STD|Hades event started! Minimum 2, maximum 8 players can enter together.");
+                return true;
+            }
+        }
+
+        public static void StopEvent()
+        {
+            lock (SyncRoot)
+            {
+                Active = false;
+
+                if (EventPortal != null)
+                {
+                    EventPortal.Remove();
+                    EventPortal = null;
+                }
+
+                foreach (var run in Runs.ToList())
+                    run.Dispose();
+
+                Runs.Clear();
+                GameManager.SendPacketToAll("0|A|STD|Hades event ended!");
+            }
+        }
+
+        public static bool IsEventPortal(Portal portal)
+        {
+            return Active && EventPortal != null && portal != null && portal.Id == EventPortal.Id;
+        }
+
+        public static bool TryUseRunPortal(Player player, Portal portal)
+        {
+            if (player == null || portal == null)
+                return false;
+
+            lock (SyncRoot)
+            {
+                var run = Runs.FirstOrDefault(candidate => candidate.ContainsPortal(portal.Id));
+                if (run == null)
+                    return false;
+
+                run.UsePortal(player, portal);
+                return true;
+            }
+        }
+
+        public static bool TryEnter(Player player)
+        {
+            if (!Active || EventPortal == null)
+            {
+                player.SendPacket("0|A|STD|Hades event is not active.");
+                return false;
+            }
+
+            var group = player.Group;
+            if (group == null)
+            {
+                player.SendPacket("0|A|STD|Hades kapuhoz csoport kell.");
+                return false;
+            }
+
+            if (group.Leader != player)
+            {
+                player.SendPacket("0|A|STD|A Hades kaput csak a csoport vezetője indíthatja.");
+                return false;
+            }
+
+            var eligiblePlayers = group.Members.Values
+                .Where(member => member != null && member.GameSession != null && !member.Destroyed && member.Spacemap != null && member.Spacemap.Id == EntryMapId && member.Position.DistanceTo(EventPortal.Position) <= Portal.SECURE_ZONE_RANGE)
+                .ToList();
+
+            if (eligiblePlayers.Count < MinimumPlayers)
+            {
+                SendToGroup(player, $"Hades kapuhoz minimum {MinimumPlayers} csoporttag kell a kapunál.");
+                return false;
+            }
+
+            if (eligiblePlayers.Count > MaximumPlayers)
+            {
+                SendToGroup(player, $"Hades kapuba egyszerre maximum {MaximumPlayers} játékos mehet be.");
+                return false;
+            }
+
+            lock (SyncRoot)
+            {
+                if (Runs.Any(run => run.ContainsAnyPlayer(eligiblePlayers)))
+                {
+                    SendToGroup(player, "Van olyan csoporttag, akinek már fut Hades kapuja.");
+                    return false;
+                }
+
+                var run = new HadesRun(group.Id, eligiblePlayers);
+                Runs.Add(run);
+                run.Start();
+            }
+
+            return true;
+        }
+
+        private static void SendToGroup(Player player, string message)
+        {
+            if (player.Group == null) return;
+
+            foreach (var member in player.Group.Members.Values)
+                member.SendPacket($"0|A|STD|{message}");
+        }
+
+        private static void RemoveRun(HadesRun run)
+        {
+            lock (SyncRoot)
+                Runs.Remove(run);
+        }
+
+        private class HadesRun
+        {
+            private readonly int GroupId;
+            private readonly Spacemap Spacemap;
+            private readonly List<int> PlayerIds;
+            private readonly List<int> NpcIds = new List<int>();
+            private readonly List<int> PortalIds = new List<int>();
+            private Portal RestPortal;
+            private Portal ExitPortal;
+            private bool WaveTwoSpawned;
+            private bool BossSpawned;
+            private bool WaitingForNextStage;
+            private bool Completed;
+            private bool Disposed;
+
+            private readonly HadesWaveDefinition[] Waves = new[]
+            {
+                new HadesWaveDefinition("Sibelon", 74, 46, 114, 124),
+                new HadesWaveDefinition("Lordakium", 77, 28, 107, 123),
+                new HadesWaveDefinition("Kristallon", 79, 35, 45, 122)
+            };
+
+            private int CurrentWaveIndex;
+
+            public HadesRun(int groupId, List<Player> players)
+            {
+                GroupId = groupId;
+                PlayerIds = players.Select(player => player.Id).ToList();
+                Spacemap = new Spacemap(HadesMapId, $"Hades-{groupId}-{DateTime.Now.Ticks}", 0, null, null, null, new OptionsBase { RangeDisabled = false, DeathLocationRepair = false, LogoutBlocked = true });
+            }
+
+            public bool ContainsAnyPlayer(List<Player> players)
+            {
+                return players.Any(player => PlayerIds.Contains(player.Id));
+            }
+
+            public bool ContainsPortal(int portalId)
+            {
+                return PortalIds.Contains(portalId);
+            }
+
+            public void Start()
+            {
+                Spacemap.CharacterRemoved += OnCharacterRemoved;
+
+                foreach (var playerId in PlayerIds)
+                {
+                    var player = GameManager.GetPlayerById(playerId);
+                    if (player == null) continue;
+                    JumpPlayer(player, HadesCenter, Spacemap);
+                }
+
+                SendMessage("Hades kapu elindult! W1 érkezik.");
+                SpawnWaveOne();
+            }
+
+            public void Dispose()
+            {
+                if (Disposed) return;
+                Disposed = true;
+
+                Spacemap.CharacterRemoved -= OnCharacterRemoved;
+                RemoveRestPortals();
+
+                foreach (var npcId in NpcIds.ToList())
+                {
+                    var npc = Spacemap.Characters.Values.OfType<Npc>().FirstOrDefault(character => character.Id == npcId);
+                    if (npc != null && !npc.Destroyed)
+                        npc.Destroy(null, DestructionType.MISC);
+                }
+
+                NpcIds.Clear();
+                PortalIds.Clear();
+                global::Ow.Program.TickManager.RemoveTick(Spacemap);
+            }
+
+            public void UsePortal(Player player, Portal portal)
+            {
+                if (player == null || portal == null || !PlayerIds.Contains(player.Id))
+                    return;
+
+                if (RestPortal != null && portal.Id == RestPortal.Id)
+                {
+                    RemoveRestPortals();
+                    JumpPlayer(player, HadesCenter, Spacemap);
+                    WaitingForNextStage = false;
+                    SendMessage("Hades pihenő vége, következő W1 érkezik.");
+                    SpawnWaveOne();
+                    return;
+                }
+
+                if (ExitPortal != null && portal.Id == ExitPortal.Id)
+                    JumpPlayer(player, ExitTargetPosition, GameManager.GetSpacemap(ExitMapId));
+            }
+
+            private void JumpPlayer(Player player, Position position, Spacemap targetMap)
+            {
+                if (targetMap == null)
+                    return;
+
+                if (player.Spacemap != null)
+                    player.Spacemap.RemoveCharacter(player);
+
+                player.LastCombatTime = DateTime.Now.AddSeconds(-999);
+                player.CurrentInRangePortalId = -1;
+                player.Deselection();
+                player.Storage.InRangeAssets.Clear();
+                player.InRangeCharacters.Clear();
+                player.SetPosition(new Position(position.X, position.Y));
+                player.Spacemap = targetMap;
+                player.Spacemap.AddAndInitPlayer(player);
+            }
+
+            private void SpawnWaveOne()
+            {
+                WaveTwoSpawned = false;
+                BossSpawned = false;
+                WaitingForNextStage = false;
+                var wave = Waves[CurrentWaveIndex];
+                SpawnNpcs(wave.WaveOneShipId, 50);
+                SendMessage($"Hades {wave.Name} W1: 50 NPC spawnolva.");
+            }
+
+            private void SpawnWaveTwo()
+            {
+                WaveTwoSpawned = true;
+                var wave = Waves[CurrentWaveIndex];
+                SendMessage($"{wave.Name} W2 érkezik!");
+                SpawnNpcs(wave.BossShipId, 20);
+                SpawnNpcs(wave.UberShipId, 10);
+            }
+
+            private void SpawnBoss()
+            {
+                BossSpawned = true;
+                var wave = Waves[CurrentWaveIndex];
+                SendMessage($"Emperor {wave.Name} érkezik!");
+                SpawnNpcs(wave.EmperorShipId, 1);
+            }
+
+            private void SpawnNpcs(int shipId, int amount)
+            {
+                var ship = GameManager.GetShip(shipId);
+                if (ship == null)
+                {
+                    SendMessage($"Hades hiba: hiányzó ship id {shipId}.");
+                    return;
+                }
+
+                for (var i = 0; i < amount; i++)
+                {
+                    var npc = new Npc(Randoms.CreateRandomID(), ship, Spacemap, Position.Random(Spacemap, 1000, 19800, 1000, 11800), false);
+                    NpcIds.Add(npc.Id);
+                }
+            }
+
+            private void OnCharacterRemoved(object sender, Spacemap.CharacterArgs e)
+            {
+                if (Disposed || Completed)
+                    return;
+
+                if (e.Character is Player)
+                {
+                    if (!PlayerIds.Any(playerId => GameManager.GetPlayerById(playerId)?.Spacemap == Spacemap))
+                    {
+                        SendMessage("Hades kapu megszakadt, nincs bent csoporttag.");
+                        Dispose();
+                        RemoveRun(this);
+                    }
+                    return;
+                }
+
+                var npc = e.Character as Npc;
+                if (npc == null || !NpcIds.Remove(npc.Id) || WaitingForNextStage)
+                    return;
+
+                if (!WaveTwoSpawned && NpcIds.Count <= WaveTwoTriggerRemainingNpcs)
+                {
+                    SpawnWaveTwo();
+                    return;
+                }
+
+                if (WaveTwoSpawned && !BossSpawned && NpcIds.Count == 0)
+                {
+                    SpawnBoss();
+                    return;
+                }
+
+                if (BossSpawned && NpcIds.Count == 0)
+                    CompleteCurrentStage();
+            }
+
+            private void CompleteCurrentStage()
+            {
+                var wave = Waves[CurrentWaveIndex];
+                SendMessage($"Hades {wave.Name} boss lement.");
+                CurrentWaveIndex++;
+
+                if (CurrentWaveIndex >= Waves.Length)
+                {
+                    Completed = true;
+                    RewardPlayers();
+                    SendMessage("Hades kapu teljesítve!");
+                    Dispose();
+                    RemoveRun(this);
+                    return;
+                }
+
+                WaitingForNextStage = true;
+                SpawnRestPortals();
+                SendMessage("Pihenő: középen van egy 71-es folytatás kapu és egy 16-os kilépő kapu.");
+            }
+
+            private void SpawnRestPortals()
+            {
+                RemoveRestPortals();
+
+                RestPortal = new Portal(Spacemap, RestPortalPosition, HadesCenter, HadesMapId, RestPortalGraphicId, 0, true, true);
+                ExitPortal = new Portal(Spacemap, ExitPortalPosition, ExitTargetPosition, ExitMapId, ExitPortalGraphicId, 0, true, true);
+                PortalIds.Add(RestPortal.Id);
+                PortalIds.Add(ExitPortal.Id);
+
+                foreach (var playerId in PlayerIds)
+                {
+                    var player = GameManager.GetPlayerById(playerId);
+                    if (player?.Spacemap == Spacemap)
+                    {
+                        player.SendCommand(RestPortal.GetAssetCreateCommand());
+                        player.SendCommand(ExitPortal.GetAssetCreateCommand());
+                    }
+                }
+            }
+
+            private void RemoveRestPortals()
+            {
+                RemoveRunPortal(RestPortal);
+                RemoveRunPortal(ExitPortal);
+                RestPortal = null;
+                ExitPortal = null;
+            }
+
+            private void RemoveRunPortal(Portal portal)
+            {
+                if (portal == null)
+                    return;
+
+                PortalIds.Remove(portal.Id);
+                Activatable activatable;
+                Spacemap.Activatables.TryRemove(portal.Id, out activatable);
+
+                foreach (var playerId in PlayerIds)
+                {
+                    var player = GameManager.GetPlayerById(playerId);
+                    if (player?.Spacemap == Spacemap)
+                        player.SendCommand(RemovePortalCommand.write(portal.Id));
+                }
+            }
+
+            private void RewardPlayers()
+            {
+                var rewardPlayers = PlayerIds
+                    .Select(playerId => GameManager.GetPlayerById(playerId))
+                    .Where(player => player != null && player.Spacemap == Spacemap)
+                    .ToList();
+
+                if (rewardPlayers.Count == 0)
+                    return;
+
+                var honorReward = FinalHonorReward / PlayerIds.Count;
+                foreach (var player in rewardPlayers)
+                {
+                    player.ChangeData(DataType.HONOR, honorReward);
+                    AddBootyKeys(player);
+                    player.SendPacket($"0|A|STD|Hades reward: {honorReward} becsület és minden booty kulcsból {RewardKeysPerType} db.");
+                }
+            }
+
+            private void AddBootyKeys(Player player)
+            {
+                if (player?.Equipment?.Items?.BootyKeys == null)
+                    return;
+
+                var bootyKeys = player.Equipment.Items.BootyKeys;
+                bootyKeys.GreenKeys += RewardKeysPerType;
+                bootyKeys.RedKeys += RewardKeysPerType;
+                bootyKeys.BlueKeys += RewardKeysPerType;
+                bootyKeys.SilverKeys += RewardKeysPerType;
+                bootyKeys.GoldKeys += RewardKeysPerType;
+                QueryManager.SavePlayer.BootyKeys(player);
+                player.SendPacket($"0|A|BK|{bootyKeys.TotalKeys}");
+            }
+
+            private void SendMessage(string message)
+            {
+                foreach (var playerId in PlayerIds)
+                {
+                    var player = GameManager.GetPlayerById(playerId);
+                    if (player != null)
+                        player.SendPacket($"0|A|STD|{message}");
+                }
+            }
+        }
+
+        private class HadesWaveDefinition
+        {
+            public string Name { get; }
+            public int WaveOneShipId { get; }
+            public int BossShipId { get; }
+            public int UberShipId { get; }
+            public int EmperorShipId { get; }
+
+            public HadesWaveDefinition(string name, int waveOneShipId, int bossShipId, int uberShipId, int emperorShipId)
+            {
+                Name = name;
+                WaveOneShipId = waveOneShipId;
+                BossShipId = bossShipId;
+                UberShipId = uberShipId;
+                EmperorShipId = emperorShipId;
+            }
+        }
     }
 }
