@@ -140,6 +140,27 @@ namespace Ow.Game.Objects
             RemoveVisualModifier(VisualModifierCommand.RED_GLOW);
         }
 
+        private void SendAegisRepairEffect(short effectId)
+        {
+            var targetIds = new List<int>();
+            var command = AbilityEffectActivationCommand.write(effectId, Owner.Id, targetIds);
+
+            Owner.SendCommand(command);
+            Owner.SendCommandToInRangePlayers(command);
+        }
+
+        private void StopAegisRepairEffect(short effectId)
+        {
+            var targetIds = new List<int>();
+            var stopCommand = AbilityStopCommand.write(effectId, Owner.Id, targetIds);
+            var deactivationCommand = AbilityEffectDeActivationCommand.write(effectId, Owner.Id, targetIds);
+
+            Owner.SendCommand(stopCommand);
+            Owner.SendCommand(deactivationCommand);
+            Owner.SendCommandToInRangePlayers(stopCommand);
+            Owner.SendCommandToInRangePlayers(deactivationCommand);
+        }
+
         public Pet(Player player) : base(Randoms.CreateRandomID(), "P.E.T 15", player.FactionId, GameManager.GetShip(22), player.Position, player.Spacemap, player.Clan)
         {
             Name = player.PetName;
@@ -612,11 +633,17 @@ namespace Ow.Game.Objects
             return Owner.LastCombatTime.AddSeconds(PET_AEGIS_COMBAT_LOCK_SECONDS) < DateTime.Now;
         }
 
+        private bool IsPetAegisRepairPodGear(short gearId)
+        {
+            return gearId == PetGearTypeModule.TRADE_POD
+                   || gearId == PetGearTypeModule.AEGIS_REPAIR_POD;
+        }
+
         private bool IsPetAegisGear(short gearId)
         {
             return gearId == PetGearTypeModule.AEGIS_HP_REPAIR
                    || gearId == PetGearTypeModule.AEGIS_SHIELD_REPAIR
-                   || gearId == PetGearTypeModule.AEGIS_REPAIR_POD;
+                   || IsPetAegisRepairPodGear(gearId);
         }
 
         private bool IsPetAegisOnCooldown(short gearId)
@@ -627,6 +654,7 @@ namespace Ow.Game.Objects
                     return _aegisHpRepairCooldownEndTime > DateTime.Now;
                 case PetGearTypeModule.AEGIS_SHIELD_REPAIR:
                     return _aegisShieldRepairCooldownEndTime > DateTime.Now;
+                case PetGearTypeModule.TRADE_POD:
                 case PetGearTypeModule.AEGIS_REPAIR_POD:
                     return _aegisRepairPodCooldownEndTime > DateTime.Now;
                 default:
@@ -652,11 +680,13 @@ namespace Ow.Game.Objects
                 if (_aegisHpRepairEndTime <= DateTime.Now)
                 {
                     AegisHpRepairActive = false;
+                    StopAegisRepairEffect(101);
                     _aegisHpRepairCooldownEndTime = DateTime.Now.AddSeconds(PET_AEGIS_REPAIR_COOLDOWN_SECONDS);
                 }
                 else if (_lastAegisHpRepairTick.AddSeconds(1) <= DateTime.Now)
                 {
                     Owner.Heal(20000);
+                    SendAegisRepairEffect(101);
                     _lastAegisHpRepairTick = DateTime.Now;
                 }
             }
@@ -666,11 +696,13 @@ namespace Ow.Game.Objects
                 if (_aegisShieldRepairEndTime <= DateTime.Now)
                 {
                     AegisShieldRepairActive = false;
+                    StopAegisRepairEffect(104);
                     _aegisShieldRepairCooldownEndTime = DateTime.Now.AddSeconds(PET_AEGIS_SHIELD_COOLDOWN_SECONDS);
                 }
                 else if (_lastAegisShieldRepairTick.AddSeconds(1) <= DateTime.Now)
                 {
                     Owner.Heal(15000, 0, HealType.SHIELD);
+                    SendAegisRepairEffect(104);
                     _lastAegisShieldRepairTick = DateTime.Now;
                 }
             }
@@ -705,6 +737,13 @@ namespace Ow.Game.Objects
                 if (friendly && character.Position.DistanceTo(_aegisRepairPod.Position) < 350)
                     character.Heal(20000, Owner.Id);
             }
+        }
+
+        private void SpawnAegisRepairPod()
+        {
+            RemoveAegisRepairPod();
+            _aegisRepairPod = new Asset(Owner.Spacemap, Owner.Position, AssetTypeModule.HEALING_POD);
+            GameManager.SendCommandToMap(Owner.Spacemap.Id, _aegisRepairPod.GetAssetCreateCommand());
         }
 
         private void RemoveAegisRepairPod()
@@ -909,7 +948,12 @@ namespace Ow.Game.Objects
                     ResourceLocatorActive = true;
                     break;
                 case PetGearTypeModule.TRADE_POD:
-                    TradePodActive = true;
+                case PetGearTypeModule.AEGIS_REPAIR_POD:
+                    AegisRepairPodActive = true;
+                    _aegisRepairPodEndTime = DateTime.Now.AddSeconds(PET_AEGIS_POD_DURATION_SECONDS);
+                    _lastAegisRepairPodTick = DateTime.MinValue;
+                    SpawnAegisRepairPod();
+                    Owner.SendPacket("0|A|STM|msg_pet_aegis_repair_pod_activated");
                     break;
                 case PetGearTypeModule.REPAIR_PET:
                     RepairActive = true;
@@ -949,14 +993,6 @@ namespace Ow.Game.Objects
                     _lastAegisShieldRepairTick = DateTime.MinValue;
                     Owner.SendPacket("0|A|STM|msg_pet_aegis_shield_repair_activated");
                     break;
-                case PetGearTypeModule.AEGIS_REPAIR_POD:
-                    AegisRepairPodActive = true;
-                    _aegisRepairPodEndTime = DateTime.Now.AddSeconds(PET_AEGIS_POD_DURATION_SECONDS);
-                    _lastAegisRepairPodTick = DateTime.MinValue;
-                    RemoveAegisRepairPod();
-                    _aegisRepairPod = new Asset(Owner.Spacemap, Owner.Position, AssetTypeModule.HEALING_POD);
-                    Owner.SendPacket("0|A|STM|msg_pet_aegis_repair_pod_activated");
-                    break;
                 case PetGearTypeModule.HP_LINK:
                     if (_hpLinkCooldownEndTime <= DateTime.Now)
                     {
@@ -990,6 +1026,10 @@ namespace Ow.Game.Objects
             ShieldSacrificeActive = false;
             ResourceSystemLocatorActive = false;
             HpLinkActive = false;
+            if (AegisHpRepairActive)
+                StopAegisRepairEffect(101);
+            if (AegisShieldRepairActive)
+                StopAegisRepairEffect(104);
             AegisHpRepairActive = false;
             AegisShieldRepairActive = false;
             AegisRepairPodActive = false;
@@ -1087,7 +1127,7 @@ namespace Ow.Game.Objects
             RegisterAbility(PetGearTypeModule.AUTO_RESOURCE_COLLECTION, "G-AR3 — Resource Collector Module III", "Automatikus nyersanyaggyűjtés 3000 egységen belül.");
             RegisterAbility(PetGearTypeModule.ENEMY_LOCATOR, "G-EL3 — Enemy Locator Module III", "Felderíti a rendszerben tartózkodó NPC-ket és kijelzi számukat.");
             RegisterAbility(PetGearTypeModule.RESOURCE_LOCATOR, "G-RL3 — Resource Locator Module III", "Megmutatja a környéken található nyersanyagokat.");
-            RegisterAbility(PetGearTypeModule.TRADE_POD, "G-TRA3 — Trade Module III", "A rakomány azonnali eladása +30% bónusszal.");
+            RegisterAbility(PetGearTypeModule.TRADE_POD, "Aegis javító pod", "Megjelenítéshez a Trade Pod P.E.T. gear ID-jét használja, de az Aegis javító pod mechanikáját futtatja.");
             RegisterAbility(PetGearTypeModule.REPAIR_PET, "G-REP3 — PET Repair Module III", "15 másodpercig másodpercenként 12 000 HP-val javítja a P.E.T.-et.");
             RegisterAbility(PetGearTypeModule.KAMIKAZE, "G-KK3 — Kamikaze Module III", "Vészhelyzetben 75 000 sebzést okozó robbanást indít 450 egységes sugarú körben.");
             RegisterAbility(PetGearTypeModule.COMBO_SHIP_REPAIR, "P.E.T. HP javítás", "Nem használt megjeleníthető ikon: sebzésen kívül aktiválva a hajó HP-ját tölti.");
@@ -1097,7 +1137,6 @@ namespace Ow.Game.Objects
             RegisterAbility(PetGearTypeModule.HP_LINK, "G-HPL — HP Link P.E.T. Gear", "20 másodpercig az űrhajót érő életerő-sebzést a P.E.T.-re terheli át. Újratöltés: 240 másodperc.");
             RegisterAbility(PetGearTypeModule.AEGIS_HP_REPAIR, "Aegis HP javítás", "Aegis ikonú P.E.T. modul: csak sebzésen kívül aktiválható, és a hajó HP-ját javítja.");
             RegisterAbility(PetGearTypeModule.AEGIS_SHIELD_REPAIR, "Aegis pajzs javítás", "Aegis ikonú P.E.T. modul: csak sebzésen kívül aktiválható, és a hajó pajzsát javítja.");
-            RegisterAbility(PetGearTypeModule.AEGIS_REPAIR_POD, "Aegis javító pod", "Aegis ikonú P.E.T. modul: csak sebzésen kívül aktiválható, és javító podot helyez le.");
         }
 
         public override byte[] GetShipCreateCommand() { return null; }
