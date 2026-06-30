@@ -1,4 +1,5 @@
 ﻿using Ow.Game.Movements;
+using Ow.Game.GalaxyGates;
 using Ow.Game.Ticks;
 using Ow.Managers;
 using Ow.Net.netty.commands;
@@ -216,6 +217,7 @@ namespace Ow.Game.Objects
 
         public void Leave(Player player, bool kicked = false)
         {
+            Hades.ResetForPlayer(player);
             foreach (var member in Members)
             {
                 if (member.Value.GameSession == null) continue;

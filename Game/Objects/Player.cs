@@ -1,4 +1,5 @@
 ﻿using Ow.Game;
+using Ow.Game.GalaxyGates;
 using Ow.Game.Objects.Players.Managers;
 using Ow.Game.Movements;
 using Ow.Managers;
@@ -1003,7 +1004,7 @@ namespace Ow.Game.Objects
 
             if (!killedLogin)
             {
-                if (Spacemap.Activatables.FirstOrDefault(x => x.Value is Portal).Value is Portal portal && portal.Working && Data.uridium >= portalRepairPrice)
+                if (((Spacemap.Activatables.FirstOrDefault(x => x.Value is Portal).Value is Portal portal && portal.Working) || Hades.IsPlayerInActiveRun(this)) && Data.uridium >= portalRepairPrice)
                     killScreenOptionModules.Add(portalRepair);
 
                 if (Spacemap.Options.DeathLocationRepair && Data.uridium >= deathLocationRepairPrice)
@@ -1164,7 +1165,7 @@ namespace Ow.Game.Objects
             var activatablesOrdered = Spacemap.Activatables.Values.OrderBy(x => x.Position.DistanceTo(Position));
             var nearestPortal = activatablesOrdered.FirstOrDefault(x => x is Portal);
 
-            return nearestPortal.Position;
+            return nearestPortal?.Position ?? Position;
         }
 
         public void SaveSettings()
