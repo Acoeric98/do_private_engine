@@ -13,6 +13,7 @@ namespace Ow.Game.Objects.AI
         public Npc Npc { get; set; }
 
         public NpcAIOption AIOption = NpcAIOption.SEARCH_FOR_ENEMIES;
+        public bool AttackRandomPlayersAggressively { get; set; }
         private static int ALIEN_DISTANCE_TO_USER = 300;
         private static int AGGRESSIVE_BUMP_RANGE = 1200;
 
@@ -27,13 +28,13 @@ namespace Ow.Game.Objects.AI
                 switch (AIOption)
                 {
                     case NpcAIOption.SEARCH_FOR_ENEMIES:
-                        foreach (var players in Npc.InRangeCharacters.Values)
+                        foreach (var players in Npc.InRangeCharacters.Values.OrderBy(_ => AttackRandomPlayersAggressively ? Randoms.random.Next() : 0))
                         {
                             if (players is Player)
                             {
                                 var player = players as Player;
 
-                                if (Npc.Ship.Aggressive && Npc.Position.DistanceTo(player.Position) > AGGRESSIVE_BUMP_RANGE)
+                                if (!AttackRandomPlayersAggressively && Npc.Ship.Aggressive && Npc.Position.DistanceTo(player.Position) > AGGRESSIVE_BUMP_RANGE)
                                     continue;
 
                                 var inDefenseZone = Npc.Spacemap?.IsInNpcDefenseZone(player.Position) == true;
@@ -46,7 +47,7 @@ namespace Ow.Game.Objects.AI
                                 }
                                 else
                                 {
-                                    if (Npc.Ship.Aggressive)
+                                    if (Npc.Ship.Aggressive || AttackRandomPlayersAggressively)
                                         Npc.Attacking = true;
 
                                     Npc.Selected = player;

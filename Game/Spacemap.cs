@@ -55,6 +55,7 @@ namespace Ow.Game
         public string StationsJSON { get; set; }
         public Position[] Limits { get; private set; }
         public OptionsBase Options { get; set; }
+        public int GroupId { get; set; }
 
         private List<NpcsBase> NpcsBase { get; set; }
         private List<PortalBase> PortalBase { get; set; }
