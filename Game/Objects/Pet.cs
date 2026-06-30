@@ -29,13 +29,10 @@ namespace Ow.Game.Objects
             PetGearTypeModule.AUTO_RESOURCE_COLLECTION,
             PetGearTypeModule.ENEMY_LOCATOR,
             PetGearTypeModule.RESOURCE_LOCATOR,
-            PetGearTypeModule.RESOURCE_SYSTEM_LOCATOR,
+            PetGearTypeModule.SHIELD_SACRIFICE,
             PetGearTypeModule.TRADE_POD,
             PetGearTypeModule.TRADE_MODULE,
-            PetGearTypeModule.HP_LINK,
-            PetGearTypeModule.SHIELD_SACRIFICE,
-            PetGearTypeModule.COMBO_SHIP_REPAIR,
-            PetGearTypeModule.COMBO_GUARD
+            PetGearTypeModule.HP_LINK
         };
 
         public Player Owner { get; set; }
@@ -923,24 +920,24 @@ namespace Ow.Game.Objects
                     KamikazeActive = true;
                     break;
                 case PetGearTypeModule.COMBO_SHIP_REPAIR:
-                    ComboShipRepairActive = true;
-                    _comboShipRepairEndTime = DateTime.Now.AddSeconds(5);
-                    _lastComboShipRepairTick = DateTime.MinValue;
-                    Owner.SendPacket("0|A|STM|msg_pet_combo_ship_repair_activated");
+                    PetHpRepairActive = true;
+                    _petHpRepairEndTime = DateTime.Now.AddSeconds(PET_HP_REPAIR_DURATION_SECONDS);
+                    _lastPetHpRepairTick = DateTime.MinValue;
+                    Owner.SendPacket("0|A|STM|msg_pet_hp_repair_activated");
                     break;
                 case PetGearTypeModule.COMBO_GUARD:
-                    ComboGuardActive = true;
-                    if (!_shieldSacrificeTriggered)
-                    {
-                        var shieldBoost = Maths.GetPercentage(Owner.MaxShieldPoints, 20);
-                        Owner.CurrentShieldPoints = Math.Min(Owner.MaxShieldPoints, Owner.CurrentShieldPoints + shieldBoost);
-                        Owner.UpdateStatus();
-                        _shieldSacrificeTriggered = true;
-                    }
+                    PetShieldRepairActive = true;
+                    _petShieldRepairEndTime = DateTime.Now.AddSeconds(PET_SHIELD_REPAIR_DURATION_SECONDS);
+                    _lastPetShieldRepairTick = DateTime.MinValue;
+                    Owner.SendPacket("0|A|STM|msg_pet_shield_repair_activated");
                     break;
-                case PetGearTypeModule.SHIELD_SACRIFICE:
-                    ShieldSacrificeActive = true;
-                    AddShieldSacrificeVisuals();
+                case PetGearTypeModule.RESOURCE_SYSTEM_LOCATOR:
+                    PetRepairPodActive = true;
+                    _petRepairPodEndTime = DateTime.Now.AddSeconds(PET_REPAIR_POD_DURATION_SECONDS);
+                    _lastPetRepairPodTick = DateTime.MinValue;
+                    RemovePetRepairPod();
+                    _petRepairPod = new Asset(Owner.Spacemap, Owner.Position, AssetTypeModule.HEALING_POD);
+                    Owner.SendPacket("0|A|STM|msg_pet_repair_pod_activated");
                     break;
                 case PetGearTypeModule.TRADE_MODULE:
                     TradePodActive = true;
@@ -1102,10 +1099,10 @@ namespace Ow.Game.Objects
             RegisterAbility(PetGearTypeModule.TRADE_POD, "G-TRA3 — Trade Module III", "A rakomány azonnali eladása +30% bónusszal.");
             RegisterAbility(PetGearTypeModule.REPAIR_PET, "G-REP3 — PET Repair Module III", "15 másodpercig másodpercenként 12 000 HP-val javítja a P.E.T.-et.");
             RegisterAbility(PetGearTypeModule.KAMIKAZE, "G-KK3 — Kamikaze Module III", "Vészhelyzetben 75 000 sebzést okozó robbanást indít 450 egységes sugarú körben.");
-            RegisterAbility(PetGearTypeModule.COMBO_SHIP_REPAIR, "C-SR3 — Ship Repair Module III", "Aktiválás után 5 másodpercig másodpercenként 25 000 életerőt állít helyre a hajón.");
-            RegisterAbility(PetGearTypeModule.COMBO_GUARD, "C-MG3 — Modular Guard System III", "Azonnali pajzserősítést biztosító védelmi mód.");
+            RegisterAbility(PetGearTypeModule.COMBO_SHIP_REPAIR, "P.E.T. HP javítás", "Nem használt megjeleníthető ikon: sebzésen kívül aktiválva a hajó HP-ját tölti.");
+            RegisterAbility(PetGearTypeModule.COMBO_GUARD, "P.E.T. pajzs javítás", "Nem használt megjeleníthető ikon: sebzésen kívül aktiválva a hajó pajzsát tölti.");
             RegisterAbility(PetGearTypeModule.SHIELD_SACRIFICE, "G-SF1 — Shield Sacrifice Module I", "Pajzsenergiát továbbít szövetségesnek, majd a P.E.T. leáll.");
-            RegisterAbility(PetGearTypeModule.RESOURCE_SYSTEM_LOCATOR, "G-RL3 — Resource Locator Module III", "Rendszerszintű nyersanyag bemérés 5000 egységig.");
+            RegisterAbility(PetGearTypeModule.RESOURCE_SYSTEM_LOCATOR, "P.E.T. javító pod", "Nem használt megjeleníthető ikon: sebzésen kívül aktiválva javító podot helyez le.");
             RegisterAbility(PetGearTypeModule.HP_LINK, "G-HPL — HP Link P.E.T. Gear", "20 másodpercig az űrhajót érő életerő-sebzést a P.E.T.-re terheli át. Újratöltés: 240 másodperc.");
             RegisterAbility(PetGearTypeModule.AEGIS_HP_REPAIR, "Aegis HP javítás", "Aegis ikonú P.E.T. modul: csak sebzésen kívül aktiválható, és a hajó HP-ját javítja.");
             RegisterAbility(PetGearTypeModule.AEGIS_SHIELD_REPAIR, "Aegis pajzs javítás", "Aegis ikonú P.E.T. modul: csak sebzésen kívül aktiválható, és a hajó pajzsát javítja.");
