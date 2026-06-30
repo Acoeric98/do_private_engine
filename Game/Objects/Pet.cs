@@ -16,13 +16,13 @@ namespace Ow.Game.Objects
     class Pet : Character
     {
         private const int KAMIKAZE_COOLDOWN_SECONDS = 30;
-        private const int PET_SUPPORT_COMBAT_LOCK_SECONDS = 10;
-        private const int PET_HP_REPAIR_DURATION_SECONDS = 7;
-        private const int PET_SHIELD_REPAIR_DURATION_SECONDS = 7;
-        private const int PET_REPAIR_POD_DURATION_SECONDS = 10;
-        private const int PET_HP_REPAIR_COOLDOWN_SECONDS = 90;
-        private const int PET_SHIELD_REPAIR_COOLDOWN_SECONDS = 90;
-        private const int PET_REPAIR_POD_COOLDOWN_SECONDS = 120;
+        private const int PET_AEGIS_COMBAT_LOCK_SECONDS = 10;
+        private const int PET_AEGIS_REPAIR_DURATION_SECONDS = 7;
+        private const int PET_AEGIS_SHIELD_DURATION_SECONDS = 7;
+        private const int PET_AEGIS_POD_DURATION_SECONDS = 10;
+        private const int PET_AEGIS_REPAIR_COOLDOWN_SECONDS = 90;
+        private const int PET_AEGIS_SHIELD_COOLDOWN_SECONDS = 90;
+        private const int PET_AEGIS_POD_COOLDOWN_SECONDS = 120;
 
         private static readonly HashSet<short> DisabledGears = new HashSet<short>
         {
@@ -101,19 +101,19 @@ namespace Ow.Game.Objects
         private int _lastOwnerHitpoints;
         private DateTime _lastLocatorPing = DateTime.MinValue;
         private bool _shieldSacrificeTriggered = false;
-        private bool PetHpRepairActive = false;
-        private bool PetShieldRepairActive = false;
-        private bool PetRepairPodActive = false;
-        private DateTime _petHpRepairEndTime = DateTime.MinValue;
-        private DateTime _petHpRepairCooldownEndTime = DateTime.MinValue;
-        private DateTime _lastPetHpRepairTick = DateTime.MinValue;
-        private DateTime _petShieldRepairEndTime = DateTime.MinValue;
-        private DateTime _petShieldRepairCooldownEndTime = DateTime.MinValue;
-        private DateTime _lastPetShieldRepairTick = DateTime.MinValue;
-        private DateTime _petRepairPodEndTime = DateTime.MinValue;
-        private DateTime _petRepairPodCooldownEndTime = DateTime.MinValue;
-        private DateTime _lastPetRepairPodTick = DateTime.MinValue;
-        private Asset _petRepairPod;
+        private bool AegisHpRepairActive = false;
+        private bool AegisShieldRepairActive = false;
+        private bool AegisRepairPodActive = false;
+        private DateTime _aegisHpRepairEndTime = DateTime.MinValue;
+        private DateTime _aegisHpRepairCooldownEndTime = DateTime.MinValue;
+        private DateTime _lastAegisHpRepairTick = DateTime.MinValue;
+        private DateTime _aegisShieldRepairEndTime = DateTime.MinValue;
+        private DateTime _aegisShieldRepairCooldownEndTime = DateTime.MinValue;
+        private DateTime _lastAegisShieldRepairTick = DateTime.MinValue;
+        private DateTime _aegisRepairPodEndTime = DateTime.MinValue;
+        private DateTime _aegisRepairPodCooldownEndTime = DateTime.MinValue;
+        private DateTime _lastAegisRepairPodTick = DateTime.MinValue;
+        private Asset _aegisRepairPod;
         private readonly HashSet<short> _enabledGearCache = new HashSet<short>();
 
         private void AddHpLinkVisuals()
@@ -167,9 +167,9 @@ namespace Ow.Game.Objects
 
             ReduceEndTime(ref _kamikazeCooldownEndTime);
             ReduceEndTime(ref _hpLinkCooldownEndTime);
-            ReduceEndTime(ref _petHpRepairCooldownEndTime);
-            ReduceEndTime(ref _petShieldRepairCooldownEndTime);
-            ReduceEndTime(ref _petRepairPodCooldownEndTime);
+            ReduceEndTime(ref _aegisHpRepairCooldownEndTime);
+            ReduceEndTime(ref _aegisShieldRepairCooldownEndTime);
+            ReduceEndTime(ref _aegisRepairPodCooldownEndTime);
         }
 
         public override void Tick()
@@ -186,7 +186,7 @@ namespace Ow.Game.Objects
                 CheckShieldSacrifice();
                 CheckKamikaze();
                 CheckLocators();
-                CheckPetSupportModules();
+                CheckPetAegisModules();
                 UpdateConditionalGearAvailability();
                 if (!collecting && !IsAbilityNavigating())
                     Follow(Owner);
@@ -606,28 +606,29 @@ namespace Ow.Game.Objects
             }
         }
 
-        private bool CanUsePetSupportModules()
+
+        private bool CanUsePetAegisModules()
         {
-            return Owner.LastCombatTime.AddSeconds(PET_SUPPORT_COMBAT_LOCK_SECONDS) < DateTime.Now;
+            return Owner.LastCombatTime.AddSeconds(PET_AEGIS_COMBAT_LOCK_SECONDS) < DateTime.Now;
         }
 
-        private bool IsPetSupportGear(short gearId)
+        private bool IsPetAegisGear(short gearId)
         {
-            return gearId == PetGearTypeModule.COMBO_SHIP_REPAIR
-                   || gearId == PetGearTypeModule.COMBO_GUARD
-                   || gearId == PetGearTypeModule.RESOURCE_SYSTEM_LOCATOR;
+            return gearId == PetGearTypeModule.AEGIS_HP_REPAIR
+                   || gearId == PetGearTypeModule.AEGIS_SHIELD_REPAIR
+                   || gearId == PetGearTypeModule.AEGIS_REPAIR_POD;
         }
 
-        private bool IsPetSupportGearOnCooldown(short gearId)
+        private bool IsPetAegisOnCooldown(short gearId)
         {
             switch (gearId)
             {
-                case PetGearTypeModule.COMBO_SHIP_REPAIR:
-                    return _petHpRepairCooldownEndTime > DateTime.Now;
-                case PetGearTypeModule.COMBO_GUARD:
-                    return _petShieldRepairCooldownEndTime > DateTime.Now;
-                case PetGearTypeModule.RESOURCE_SYSTEM_LOCATOR:
-                    return _petRepairPodCooldownEndTime > DateTime.Now;
+                case PetGearTypeModule.AEGIS_HP_REPAIR:
+                    return _aegisHpRepairCooldownEndTime > DateTime.Now;
+                case PetGearTypeModule.AEGIS_SHIELD_REPAIR:
+                    return _aegisShieldRepairCooldownEndTime > DateTime.Now;
+                case PetGearTypeModule.AEGIS_REPAIR_POD:
+                    return _aegisRepairPodCooldownEndTime > DateTime.Now;
                 default:
                     return false;
             }
@@ -638,80 +639,80 @@ namespace Ow.Game.Objects
             if (gearId == PetGearTypeModule.KAMIKAZE)
                 return !IsKamikazeOnCooldown();
 
-            if (IsPetSupportGear(gearId))
-                return CanUsePetSupportModules() && !IsPetSupportGearOnCooldown(gearId);
+            if (IsPetAegisGear(gearId))
+                return CanUsePetAegisModules() && !IsPetAegisOnCooldown(gearId);
 
             return true;
         }
 
-        private void CheckPetSupportModules()
+        private void CheckPetAegisModules()
         {
-            if (PetHpRepairActive)
+            if (AegisHpRepairActive)
             {
-                if (_petHpRepairEndTime <= DateTime.Now)
+                if (_aegisHpRepairEndTime <= DateTime.Now)
                 {
-                    PetHpRepairActive = false;
-                    _petHpRepairCooldownEndTime = DateTime.Now.AddSeconds(PET_HP_REPAIR_COOLDOWN_SECONDS);
+                    AegisHpRepairActive = false;
+                    _aegisHpRepairCooldownEndTime = DateTime.Now.AddSeconds(PET_AEGIS_REPAIR_COOLDOWN_SECONDS);
                 }
-                else if (_lastPetHpRepairTick.AddSeconds(1) <= DateTime.Now)
+                else if (_lastAegisHpRepairTick.AddSeconds(1) <= DateTime.Now)
                 {
                     Owner.Heal(20000);
-                    _lastPetHpRepairTick = DateTime.Now;
+                    _lastAegisHpRepairTick = DateTime.Now;
                 }
             }
 
-            if (PetShieldRepairActive)
+            if (AegisShieldRepairActive)
             {
-                if (_petShieldRepairEndTime <= DateTime.Now)
+                if (_aegisShieldRepairEndTime <= DateTime.Now)
                 {
-                    PetShieldRepairActive = false;
-                    _petShieldRepairCooldownEndTime = DateTime.Now.AddSeconds(PET_SHIELD_REPAIR_COOLDOWN_SECONDS);
+                    AegisShieldRepairActive = false;
+                    _aegisShieldRepairCooldownEndTime = DateTime.Now.AddSeconds(PET_AEGIS_SHIELD_COOLDOWN_SECONDS);
                 }
-                else if (_lastPetShieldRepairTick.AddSeconds(1) <= DateTime.Now)
+                else if (_lastAegisShieldRepairTick.AddSeconds(1) <= DateTime.Now)
                 {
                     Owner.Heal(15000, 0, HealType.SHIELD);
-                    _lastPetShieldRepairTick = DateTime.Now;
+                    _lastAegisShieldRepairTick = DateTime.Now;
                 }
             }
 
-            if (PetRepairPodActive)
+            if (AegisRepairPodActive)
             {
-                if (_petRepairPodEndTime <= DateTime.Now)
+                if (_aegisRepairPodEndTime <= DateTime.Now)
                 {
-                    PetRepairPodActive = false;
-                    _petRepairPodCooldownEndTime = DateTime.Now.AddSeconds(PET_REPAIR_POD_COOLDOWN_SECONDS);
-                    RemovePetRepairPod();
+                    AegisRepairPodActive = false;
+                    _aegisRepairPodCooldownEndTime = DateTime.Now.AddSeconds(PET_AEGIS_POD_COOLDOWN_SECONDS);
+                    RemoveAegisRepairPod();
                 }
-                else if (_lastPetRepairPodTick.AddSeconds(1) <= DateTime.Now)
+                else if (_lastAegisRepairPodTick.AddSeconds(1) <= DateTime.Now)
                 {
-                    ExecutePetRepairPodHeal();
-                    _lastPetRepairPodTick = DateTime.Now;
+                    ExecuteAegisRepairPodHeal();
+                    _lastAegisRepairPodTick = DateTime.Now;
                 }
             }
         }
 
-        private void ExecutePetRepairPodHeal()
+        private void ExecuteAegisRepairPodHeal()
         {
-            if (_petRepairPod == null) return;
+            if (_aegisRepairPod == null) return;
 
-            foreach (var character in _petRepairPod.Spacemap.Characters.Values.OfType<Player>())
+            foreach (var character in _aegisRepairPod.Spacemap.Characters.Values.OfType<Player>())
             {
                 short relationType = Owner.Clan.Id != 0 && character.Clan.Id != 0 ? Owner.Clan.GetRelation(character.Clan) : (short)0;
                 var friendly = character == Owner
                                || (Owner.Group != null && Owner.Group.Members.ContainsKey(character.Id))
                                || relationType == ClanRelationModule.ALLIED;
 
-                if (friendly && character.Position.DistanceTo(_petRepairPod.Position) < 350)
+                if (friendly && character.Position.DistanceTo(_aegisRepairPod.Position) < 350)
                     character.Heal(20000, Owner.Id);
             }
         }
 
-        private void RemovePetRepairPod()
+        private void RemoveAegisRepairPod()
         {
-            if (_petRepairPod == null) return;
+            if (_aegisRepairPod == null) return;
 
-            _petRepairPod.Remove();
-            _petRepairPod = null;
+            _aegisRepairPod.Remove();
+            _aegisRepairPod = null;
         }
 
         private void UpdateConditionalGearAvailability()
@@ -864,16 +865,16 @@ namespace Ow.Game.Objects
                 return;
             }
 
-            if (IsPetSupportGear(gearId) && !CanUsePetSupportModules())
+            if (IsPetAegisGear(gearId) && !CanUsePetAegisModules())
             {
-                Owner.SendPacket("0|A|STD|A P.E.T. támogató modul csak akkor használható, ha a játékos nem kap sebzést.");
+                Owner.SendPacket("0|A|STD|A P.E.T. Aegis modul csak akkor használható, ha a játékos nem kap sebzést.");
                 Owner.SendCommand(PetGearSelectCommand.write(new PetGearTypeModule(GearId), new List<int>()));
                 return;
             }
 
-            if (IsPetSupportGear(gearId) && IsPetSupportGearOnCooldown(gearId))
+            if (IsPetAegisGear(gearId) && IsPetAegisOnCooldown(gearId))
             {
-                Owner.SendPacket("0|A|STD|A P.E.T. támogató modul újratöltés alatt áll.");
+                Owner.SendPacket("0|A|STD|A P.E.T. Aegis modul újratöltés alatt áll.");
                 Owner.SendCommand(PetGearSelectCommand.write(new PetGearTypeModule(GearId), new List<int>()));
                 return;
             }
@@ -942,6 +943,29 @@ namespace Ow.Game.Objects
                     TradePodActive = true;
                     HandleTradeModule();
                     break;
+                case PetGearTypeModule.RESOURCE_SYSTEM_LOCATOR:
+                    ResourceSystemLocatorActive = true;
+                    break;
+                case PetGearTypeModule.AEGIS_HP_REPAIR:
+                    AegisHpRepairActive = true;
+                    _aegisHpRepairEndTime = DateTime.Now.AddSeconds(PET_AEGIS_REPAIR_DURATION_SECONDS);
+                    _lastAegisHpRepairTick = DateTime.MinValue;
+                    Owner.SendPacket("0|A|STM|msg_pet_aegis_hp_repair_activated");
+                    break;
+                case PetGearTypeModule.AEGIS_SHIELD_REPAIR:
+                    AegisShieldRepairActive = true;
+                    _aegisShieldRepairEndTime = DateTime.Now.AddSeconds(PET_AEGIS_SHIELD_DURATION_SECONDS);
+                    _lastAegisShieldRepairTick = DateTime.MinValue;
+                    Owner.SendPacket("0|A|STM|msg_pet_aegis_shield_repair_activated");
+                    break;
+                case PetGearTypeModule.AEGIS_REPAIR_POD:
+                    AegisRepairPodActive = true;
+                    _aegisRepairPodEndTime = DateTime.Now.AddSeconds(PET_AEGIS_POD_DURATION_SECONDS);
+                    _lastAegisRepairPodTick = DateTime.MinValue;
+                    RemoveAegisRepairPod();
+                    _aegisRepairPod = new Asset(Owner.Spacemap, Owner.Position, AssetTypeModule.HEALING_POD);
+                    Owner.SendPacket("0|A|STM|msg_pet_aegis_repair_pod_activated");
+                    break;
                 case PetGearTypeModule.HP_LINK:
                     if (_hpLinkCooldownEndTime <= DateTime.Now)
                     {
@@ -975,10 +999,10 @@ namespace Ow.Game.Objects
             ShieldSacrificeActive = false;
             ResourceSystemLocatorActive = false;
             HpLinkActive = false;
-            PetHpRepairActive = false;
-            PetShieldRepairActive = false;
-            PetRepairPodActive = false;
-            RemovePetRepairPod();
+            AegisHpRepairActive = false;
+            AegisShieldRepairActive = false;
+            AegisRepairPodActive = false;
+            RemoveAegisRepairPod();
             _shieldSacrificeTriggered = false;
             ResetKamikazeState();
             ResetShieldSacrificeState();
@@ -1080,6 +1104,9 @@ namespace Ow.Game.Objects
             RegisterAbility(PetGearTypeModule.SHIELD_SACRIFICE, "G-SF1 — Shield Sacrifice Module I", "Pajzsenergiát továbbít szövetségesnek, majd a P.E.T. leáll.");
             RegisterAbility(PetGearTypeModule.RESOURCE_SYSTEM_LOCATOR, "P.E.T. javító pod", "Nem használt megjeleníthető ikon: sebzésen kívül aktiválva javító podot helyez le.");
             RegisterAbility(PetGearTypeModule.HP_LINK, "G-HPL — HP Link P.E.T. Gear", "20 másodpercig az űrhajót érő életerő-sebzést a P.E.T.-re terheli át. Újratöltés: 240 másodperc.");
+            RegisterAbility(PetGearTypeModule.AEGIS_HP_REPAIR, "Aegis HP javítás", "Aegis ikonú P.E.T. modul: csak sebzésen kívül aktiválható, és a hajó HP-ját javítja.");
+            RegisterAbility(PetGearTypeModule.AEGIS_SHIELD_REPAIR, "Aegis pajzs javítás", "Aegis ikonú P.E.T. modul: csak sebzésen kívül aktiválható, és a hajó pajzsát javítja.");
+            RegisterAbility(PetGearTypeModule.AEGIS_REPAIR_POD, "Aegis javító pod", "Aegis ikonú P.E.T. modul: csak sebzésen kívül aktiválható, és javító podot helyez le.");
         }
 
         public override byte[] GetShipCreateCommand() { return null; }
