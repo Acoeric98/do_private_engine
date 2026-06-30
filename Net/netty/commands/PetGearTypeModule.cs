@@ -29,6 +29,9 @@ namespace Ow.Net.netty.commands
         public const short TRADE_MODULE = 15;
         public const short RESOURCE_SYSTEM_LOCATOR = 16;
         public const short HP_LINK = 17;
+        public const short AEGIS_HP_REPAIR = 18;
+        public const short AEGIS_SHIELD_REPAIR = 19;
+        public const short AEGIS_REPAIR_POD = 20;
 
         public short typeValue = 0;
 
