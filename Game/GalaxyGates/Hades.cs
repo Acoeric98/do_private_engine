@@ -16,10 +16,13 @@ namespace Ow.Game.GalaxyGates
         public const int HadesMapId = 71;
         public const int ExitMapId = 16;
         public const int MinimumPlayers = 2;
+        private const bool DebugAllowSoloEntry = true;
         public const int MaximumPlayers = 8;
         private const int WaveTwoTriggerRemainingNpcs = 10;
         private const int FinalHonorReward = 16000000;
         private const int RewardKeysPerType = 3;
+        private const int PortalJumpCountdownSeconds = 15;
+        private const int RandomBoosterRewardHours = 5;
         private const int EventPortalGraphicId = 1;
         private const int RestPortalGraphicId = 1;
         private const int ExitPortalGraphicId = 1;
@@ -114,23 +117,29 @@ namespace Ow.Game.GalaxyGates
             }
 
             var group = player.Group;
-            if (group == null)
+            var debugSoloEntry = DebugAllowSoloEntry && group == null;
+            if (!debugSoloEntry)
             {
-                player.SendPacket("0|A|STD|Hades kapuhoz csoport kell.");
-                return false;
+                if (group == null)
+                {
+                    player.SendPacket("0|A|STD|Hades kapuhoz csoport kell.");
+                    return false;
+                }
+
+                if (group.Leader != player)
+                {
+                    player.SendPacket("0|A|STD|A Hades kaput csak a csoport vezetője indíthatja.");
+                    return false;
+                }
             }
 
-            if (group.Leader != player)
-            {
-                player.SendPacket("0|A|STD|A Hades kaput csak a csoport vezetője indíthatja.");
-                return false;
-            }
+            var eligiblePlayers = debugSoloEntry
+                ? new List<Player> { player }
+                : group.Members.Values
+                    .Where(member => member != null && member.GameSession != null && !member.Destroyed && member.Spacemap != null && member.Spacemap.Id == EntryMapId && member.Position.DistanceTo(EventPortal.Position) <= Portal.SECURE_ZONE_RANGE)
+                    .ToList();
 
-            var eligiblePlayers = group.Members.Values
-                .Where(member => member != null && member.GameSession != null && !member.Destroyed && member.Spacemap != null && member.Spacemap.Id == EntryMapId && member.Position.DistanceTo(EventPortal.Position) <= Portal.SECURE_ZONE_RANGE)
-                .ToList();
-
-            if (eligiblePlayers.Count < MinimumPlayers)
+            if (eligiblePlayers.Count < MinimumPlayers && !debugSoloEntry)
             {
                 SendToGroup(player, $"Hades kapuhoz minimum {MinimumPlayers} csoporttag kell a kapunál.");
                 return false;
@@ -144,13 +153,20 @@ namespace Ow.Game.GalaxyGates
 
             lock (SyncRoot)
             {
+                var existingRun = Runs.FirstOrDefault(activeRun => activeRun.ContainsPlayer(player.Id));
+                if (existingRun != null)
+                {
+                    existingRun.ReturnPlayer(player);
+                    return true;
+                }
+
                 if (Runs.Any(activeRun => activeRun.ContainsAnyPlayer(eligiblePlayers)))
                 {
                     SendToGroup(player, "Van olyan csoporttag, akinek már fut Hades kapuja.");
                     return false;
                 }
 
-                var run = new HadesRun(group.Id, eligiblePlayers);
+                var run = new HadesRun(debugSoloEntry ? player.Id : group.Id, eligiblePlayers);
                 Runs.Add(run);
                 run.Start();
             }
@@ -186,6 +202,7 @@ namespace Ow.Game.GalaxyGates
             private bool WaitingForNextStage;
             private bool Completed;
             private bool Disposed;
+            private bool PortalJumpInProgress;
 
             private readonly HadesWaveDefinition[] Waves = new[]
             {
@@ -201,11 +218,26 @@ namespace Ow.Game.GalaxyGates
                 GroupId = groupId;
                 PlayerIds = players.Select(player => player.Id).ToList();
                 Spacemap = new Spacemap(HadesMapId, $"Hades-{groupId}-{DateTime.Now.Ticks}", 0, null, null, null, new OptionsBase { RangeDisabled = false, DeathLocationRepair = false, LogoutBlocked = true });
+                Spacemap.GroupId = groupId;
             }
 
             public bool ContainsAnyPlayer(List<Player> players)
             {
                 return players.Any(player => PlayerIds.Contains(player.Id));
+            }
+
+            public bool ContainsPlayer(int playerId)
+            {
+                return PlayerIds.Contains(playerId);
+            }
+
+            public void ReturnPlayer(Player player)
+            {
+                if (player == null || !PlayerIds.Contains(player.Id))
+                    return;
+
+                JumpPlayer(player, HadesCenter, Spacemap);
+                player.SendPacket($"0|A|STD|Visszaengedve a saját Hades csoport mapodra ({Spacemap.Name}).");
             }
 
             public bool ContainsPortal(int portalId)
@@ -217,6 +249,11 @@ namespace Ow.Game.GalaxyGates
             {
                 Spacemap.CharacterRemoved += OnCharacterRemoved;
 
+                await Countdown("Hades belépés", PortalJumpCountdownSeconds);
+
+                if (Disposed || Completed)
+                    return;
+
                 foreach (var playerId in PlayerIds)
                 {
                     var player = GameManager.GetPlayerById(playerId);
@@ -224,13 +261,7 @@ namespace Ow.Game.GalaxyGates
                     JumpPlayer(player, HadesCenter, Spacemap);
                 }
 
-                SendMessage("Minden csoporttag bent van a Hades kapuban. 30 másodperc múlva indul a W1.");
-                await Task.Delay(30000);
-
-                if (Disposed || Completed)
-                    return;
-
-                SendMessage("Hades kapu elindult! W1 érkezik.");
+                SendMessage("Minden csoporttag bent van a Hades kapuban. W1 érkezik.");
                 SpawnWaveOne();
             }
 
@@ -261,16 +292,53 @@ namespace Ow.Game.GalaxyGates
 
                 if (RestPortal != null && portal.Id == RestPortal.Id)
                 {
-                    RemoveRestPortals();
-                    JumpPlayer(player, HadesCenter, Spacemap);
-                    WaitingForNextStage = false;
-                    SendMessage("Hades pihenő vége, következő W1 érkezik.");
-                    SpawnWaveOne();
+                    StartPortalCountdown(HadesCenter, Spacemap, () =>
+                    {
+                        RemoveRestPortals();
+                        WaitingForNextStage = false;
+                        SendMessage("Hades pihenő vége, következő W1 érkezik.");
+                        SpawnWaveOne();
+                    });
                     return;
                 }
 
                 if (ExitPortal != null && portal.Id == ExitPortal.Id)
-                    JumpPlayer(player, ExitTargetPosition, GameManager.GetSpacemap(ExitMapId));
+                    StartPortalCountdown(ExitTargetPosition, GameManager.GetSpacemap(ExitMapId), null);
+            }
+
+            private async void StartPortalCountdown(Position position, Spacemap targetMap, Action afterJump)
+            {
+                if (PortalJumpInProgress || targetMap == null)
+                    return;
+
+                PortalJumpInProgress = true;
+                await Countdown("Kapu ugrás", PortalJumpCountdownSeconds);
+                if (Disposed || Completed)
+                {
+                    PortalJumpInProgress = false;
+                    return;
+                }
+
+                foreach (var playerId in PlayerIds)
+                {
+                    var groupPlayer = GameManager.GetPlayerById(playerId);
+                    if (groupPlayer != null && groupPlayer.Spacemap == Spacemap)
+                        JumpPlayer(groupPlayer, position, targetMap);
+                }
+
+                PortalJumpInProgress = false;
+                afterJump?.Invoke();
+            }
+
+            private async Task Countdown(string label, int secondsTotal)
+            {
+                for (var seconds = secondsTotal; seconds > 0; seconds--)
+                {
+                    SendMessage($"{label} {seconds} másodperc múlva. Várakozás, hogy a teljes csoport együtt legyen.");
+                    await Task.Delay(1000);
+                    if (Disposed || Completed)
+                        return;
+                }
             }
 
             private void JumpPlayer(Player player, Position position, Spacemap targetMap)
@@ -315,10 +383,10 @@ namespace Ow.Game.GalaxyGates
                 BossSpawned = true;
                 var wave = Waves[CurrentWaveIndex];
                 SendMessage($"Emperor {wave.Name} érkezik!");
-                SpawnNpcs(wave.EmperorShipId, 1);
+                SpawnNpc(wave.EmperorShipId, HadesCenter);
             }
 
-            private void SpawnNpcs(int shipId, int amount)
+            private void SpawnNpc(int shipId, Position position)
             {
                 var ship = GameManager.GetShip(shipId);
                 if (ship == null)
@@ -327,10 +395,16 @@ namespace Ow.Game.GalaxyGates
                     return;
                 }
 
+                var npc = new Npc(Randoms.CreateRandomID(), ship, Spacemap, position, false);
+                npc.NpcAI.AttackRandomPlayersAggressively = true;
+                NpcIds.Add(npc.Id);
+            }
+
+            private void SpawnNpcs(int shipId, int amount)
+            {
                 for (var i = 0; i < amount; i++)
                 {
-                    var npc = new Npc(Randoms.CreateRandomID(), ship, Spacemap, Position.Random(Spacemap, 1000, 19800, 1000, 11800), false);
-                    NpcIds.Add(npc.Id);
+                    SpawnNpc(shipId, Position.Random(Spacemap, 1000, 19800, 1000, 11800));
                 }
             }
 
@@ -451,7 +525,8 @@ namespace Ow.Game.GalaxyGates
                 {
                     player.ChangeData(DataType.HONOR, honorReward);
                     AddBootyKeys(player);
-                    player.SendPacket($"0|A|STD|Hades reward: {honorReward} becsület és minden booty kulcsból {RewardKeysPerType} db.");
+                    AddRandomBooster(player);
+                    player.SendPacket($"0|A|STD|Hades reward: {honorReward} becsület, minden booty kulcsból {RewardKeysPerType} db és {RandomBoosterRewardHours} óra random booster.");
                 }
             }
 
@@ -468,6 +543,19 @@ namespace Ow.Game.GalaxyGates
                 bootyKeys.GoldKeys += RewardKeysPerType;
                 QueryManager.SavePlayer.BootyKeys(player);
                 player.SendPacket($"0|A|BK|{bootyKeys.TotalKeys}");
+            }
+
+
+            private void AddRandomBooster(Player player)
+            {
+                var boosterTypes = new[]
+                {
+                    BoosterType.DMG_B01, BoosterType.DMG_B02, BoosterType.EP_B01, BoosterType.EP_B02,
+                    BoosterType.HON_B01, BoosterType.HON_B02, BoosterType.HP_B01, BoosterType.HP_B02,
+                    BoosterType.REP_B01, BoosterType.REP_B02, BoosterType.SHD_B01, BoosterType.SHD_B02
+                };
+
+                player.BoosterManager.Add(boosterTypes[Randoms.random.Next(boosterTypes.Length)], RandomBoosterRewardHours);
             }
 
             private void SendMessage(string message)

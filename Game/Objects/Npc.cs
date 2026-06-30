@@ -389,7 +389,7 @@ namespace Ow.Game.Objects
                 0,
                 false,
                 new ClanRelationModule(ClanRelationModule.AT_WAR),
-                0,
+                1,
                 false,
                 true,
                 false,
