@@ -61,7 +61,16 @@ namespace Ow.Game.Objects
                     return;
                 }
 
+                if (SoloGateTemplate.IsEventPortal(this))
+                {
+                    SoloGateTemplate.TryEnter(player);
+                    return;
+                }
+
                 if (Hades.TryUseRunPortal(player, this))
+                    return;
+
+                if (SoloGateTemplate.TryUseRunPortal(player, this))
                     return;
 
                 if (player.Storage.Jumping) return;

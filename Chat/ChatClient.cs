@@ -263,6 +263,8 @@ namespace Ow.Chat
                         "/stop_spaceball - Spaceball esemény leállítása.",
                         "/start_hades [entryMapId x y] - Event Hades kapu indítása fix 71-es Hades pályára (min 2, max 8).",
                         "/stop_hades - Event Hades kapu leállítása.",
+                        "/start_solo_gate [entryMapId x y] - Egyedül teljesíthető kapu sablon event indítása (csoport nem kell).",
+                        "/stop_solo_gate - Egyedül teljesíthető kapu sablon event leállítása.",
                         "/start_jpb - Jackpot Battle indítása.",
                         "/give_booster <userId> <boosterType> [óra] - Booster adása (típus: 0,1,2,3,8,9,10,11,12,5,6,15,16,7,4).",
                         "/system <szöveg> - Rendszerüzenet küldése a chatre.",
@@ -829,6 +831,34 @@ namespace Ow.Chat
             {
                 Hades.StopEvent();
                 Send("dq%Hades event stopped.#");
+            }
+            else if (cmd == "/start_solo_gate" && Permission == Permissions.ADMINISTRATOR)
+            {
+                var args = message.Split(' ');
+                var entryMapId = gameSession.Player.Spacemap.Id;
+                var entryX = gameSession.Player.Position.X;
+                var entryY = gameSession.Player.Position.Y;
+
+                if (args.Length >= 4)
+                {
+                    if (!int.TryParse(args[1], out entryMapId) ||
+                        !int.TryParse(args[2], out entryX) ||
+                        !int.TryParse(args[3], out entryY))
+                    {
+                        Send("dq%Invalid numeric value. Usage: /start_solo_gate [entryMapId x y]#");
+                        return;
+                    }
+                }
+
+                if (SoloGateTemplate.StartEvent(entryMapId, new Position(entryX, entryY), out var soloGateMessage))
+                    Send($"dq%{soloGateMessage}#");
+                else
+                    Send($"dq%{soloGateMessage}#");
+            }
+            else if (cmd == "/stop_solo_gate" && Permission == Permissions.ADMINISTRATOR)
+            {
+                SoloGateTemplate.StopEvent();
+                Send("dq%Solo gate template event stopped.#");
             }
             else if (cmd == "/start_jpb" && Permission == Permissions.ADMINISTRATOR)
             {
