@@ -23,7 +23,7 @@ namespace Ow.Game.GalaxyGates
         private const int RewardKeysPerType = 3;
         private const int PortalJumpCountdownSeconds = 15;
         private const int FirstWaveStartDelaySeconds = 15;
-        private const int NpcSpawnCircleRadius = 150;
+        private const int NpcSpawnCircleRadius = 3000;
         private const int NpcCountMessageIntervalSeconds = 45;
         private const int RandomBoosterRewardHours = 5;
         private const int FinalUridiumReward = 50000;
@@ -36,7 +36,7 @@ namespace Ow.Game.GalaxyGates
         private static readonly Position RestPortalPosition = new Position(10100, 6400);
         private static readonly Position ExitPortalPosition = new Position(10700, 6400);
         private static readonly Position ExitTargetPosition = new Position(21000, 13000);
-        private static readonly Position ExitMapCenter = new Position(10400, 6400);
+        private static readonly Position ExitMapCenter = new Position(21200, 13300);
 
         public static bool Active { get; private set; }
         public static int EntryMapId { get; private set; }
@@ -180,6 +180,28 @@ namespace Ow.Game.GalaxyGates
             return true;
         }
 
+
+        public static bool IsPlayerInActiveRun(Player player)
+        {
+            if (player == null)
+                return false;
+
+            lock (SyncRoot)
+                return Runs.Any(run => run.ContainsPlayer(player.Id));
+        }
+
+        public static void ResetForPlayer(Player player)
+        {
+            if (player == null)
+                return;
+
+            HadesRun run;
+            lock (SyncRoot)
+                run = Runs.FirstOrDefault(candidate => candidate.ContainsPlayer(player.Id));
+
+            run?.ResetBecausePlayerLeftGroup(player);
+        }
+
         private static void SendToGroup(Player player, string message)
         {
             if (player.Group == null) return;
@@ -209,6 +231,7 @@ namespace Ow.Game.GalaxyGates
             private bool Completed;
             private bool Disposed;
             private bool PortalJumpInProgress;
+            private bool SoloReturnGraceInProgress;
 
             private readonly HadesWaveDefinition[] Waves = new[]
             {
@@ -223,7 +246,7 @@ namespace Ow.Game.GalaxyGates
             {
                 GroupId = groupId;
                 PlayerIds = players.Select(player => player.Id).ToList();
-                Spacemap = new Spacemap(HadesMapId, $"Hades-{groupId}-{DateTime.Now.Ticks}", 0, null, null, null, new OptionsBase { RangeDisabled = true, DeathLocationRepair = false, LogoutBlocked = true });
+                Spacemap = new Spacemap(HadesMapId, $"Hades-{groupId}-{DateTime.Now.Ticks}", 0, null, null, null, new OptionsBase { RangeDisabled = true, DeathLocationRepair = true, LogoutBlocked = true });
                 Spacemap.GroupId = groupId;
             }
 
@@ -296,6 +319,50 @@ namespace Ow.Game.GalaxyGates
                 NpcIds.Clear();
                 PortalIds.Clear();
                 global::Ow.Program.TickManager.RemoveTick(Spacemap);
+            }
+
+
+            public async void ResetBecausePlayerLeftGroup(Player player)
+            {
+                if (Disposed || player == null || !PlayerIds.Contains(player.Id))
+                    return;
+
+                var hadesMap = Spacemap;
+                var oldPosition = new Position(player.Position.X, player.Position.Y);
+                var wasInside = player.Spacemap == hadesMap;
+
+                SendMessage($"{player.Name} kilépett vagy ki lett dobva a csoportból, ezért a Hades kapu resetelődik.");
+                Dispose();
+                RemoveRun(this);
+
+                if (!wasInside)
+                    return;
+
+                await Task.Delay(20000);
+
+                var currentPlayer = GameManager.GetPlayerById(player.Id);
+                var exitMap = GameManager.GetSpacemap(ExitMapId);
+                if (currentPlayer != null && exitMap != null && currentPlayer.Spacemap == hadesMap && currentPlayer.Position.DistanceTo(oldPosition) <= 1)
+                    JumpPlayer(currentPlayer, ExitMapCenter, exitMap);
+            }
+
+            private async void StartSoloReturnGrace(Player player)
+            {
+                if (SoloReturnGraceInProgress)
+                    return;
+
+                SoloReturnGraceInProgress = true;
+                player.SendPacket("0|A|STD|Egyedül haltál meg a Hades kapuban. 5 perced van visszatérni a kapuba.");
+                await Task.Delay(5 * 60 * 1000);
+
+                if (Disposed || Completed)
+                    return;
+
+                if (!PlayerIds.Any(playerId => GameManager.GetPlayerById(playerId)?.Spacemap == Spacemap))
+                {
+                    Dispose();
+                    RemoveRun(this);
+                }
             }
 
             public void UsePortal(Player player, Portal portal)
@@ -476,10 +543,16 @@ namespace Ow.Game.GalaxyGates
                 if (Disposed || Completed)
                     return;
 
-                if (e.Character is Player)
+                if (e.Character is Player removedPlayer)
                 {
                     if (!PlayerIds.Any(playerId => GameManager.GetPlayerById(playerId)?.Spacemap == Spacemap))
                     {
+                        if (PlayerIds.Count == 1 && removedPlayer.Destroyed)
+                        {
+                            StartSoloReturnGrace(removedPlayer);
+                            return;
+                        }
+
                         SendMessage("Hades kapu megszakadt, nincs bent csoporttag.");
                         Dispose();
                         RemoveRun(this);
@@ -684,7 +757,7 @@ namespace Ow.Game.GalaxyGates
                 foreach (var playerId in PlayerIds)
                 {
                     var player = GameManager.GetPlayerById(playerId);
-                    if (player != null)
+                    if (player != null && player.Spacemap == Spacemap)
                         player.SendPacket($"0|A|STD|{message}");
                 }
             }
