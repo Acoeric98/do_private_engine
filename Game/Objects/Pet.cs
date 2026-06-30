@@ -16,19 +16,23 @@ namespace Ow.Game.Objects
     class Pet : Character
     {
         private const int KAMIKAZE_COOLDOWN_SECONDS = 30;
+        private const int PET_SUPPORT_COMBAT_LOCK_SECONDS = 10;
+        private const int PET_HP_REPAIR_DURATION_SECONDS = 7;
+        private const int PET_SHIELD_REPAIR_DURATION_SECONDS = 7;
+        private const int PET_REPAIR_POD_DURATION_SECONDS = 10;
+        private const int PET_HP_REPAIR_COOLDOWN_SECONDS = 90;
+        private const int PET_SHIELD_REPAIR_COOLDOWN_SECONDS = 90;
+        private const int PET_REPAIR_POD_COOLDOWN_SECONDS = 120;
 
         private static readonly HashSet<short> DisabledGears = new HashSet<short>
         {
             PetGearTypeModule.AUTO_RESOURCE_COLLECTION,
             PetGearTypeModule.ENEMY_LOCATOR,
             PetGearTypeModule.RESOURCE_LOCATOR,
-            PetGearTypeModule.RESOURCE_SYSTEM_LOCATOR,
+            PetGearTypeModule.SHIELD_SACRIFICE,
             PetGearTypeModule.TRADE_POD,
             PetGearTypeModule.TRADE_MODULE,
-            PetGearTypeModule.HP_LINK,
-            PetGearTypeModule.SHIELD_SACRIFICE,
-            PetGearTypeModule.COMBO_SHIP_REPAIR,
-            PetGearTypeModule.COMBO_GUARD
+            PetGearTypeModule.HP_LINK
         };
 
         public Player Owner { get; set; }
@@ -97,6 +101,20 @@ namespace Ow.Game.Objects
         private int _lastOwnerHitpoints;
         private DateTime _lastLocatorPing = DateTime.MinValue;
         private bool _shieldSacrificeTriggered = false;
+        private bool PetHpRepairActive = false;
+        private bool PetShieldRepairActive = false;
+        private bool PetRepairPodActive = false;
+        private DateTime _petHpRepairEndTime = DateTime.MinValue;
+        private DateTime _petHpRepairCooldownEndTime = DateTime.MinValue;
+        private DateTime _lastPetHpRepairTick = DateTime.MinValue;
+        private DateTime _petShieldRepairEndTime = DateTime.MinValue;
+        private DateTime _petShieldRepairCooldownEndTime = DateTime.MinValue;
+        private DateTime _lastPetShieldRepairTick = DateTime.MinValue;
+        private DateTime _petRepairPodEndTime = DateTime.MinValue;
+        private DateTime _petRepairPodCooldownEndTime = DateTime.MinValue;
+        private DateTime _lastPetRepairPodTick = DateTime.MinValue;
+        private Asset _petRepairPod;
+        private readonly HashSet<short> _enabledGearCache = new HashSet<short>();
 
         private void AddHpLinkVisuals()
         {
@@ -149,6 +167,9 @@ namespace Ow.Game.Objects
 
             ReduceEndTime(ref _kamikazeCooldownEndTime);
             ReduceEndTime(ref _hpLinkCooldownEndTime);
+            ReduceEndTime(ref _petHpRepairCooldownEndTime);
+            ReduceEndTime(ref _petShieldRepairCooldownEndTime);
+            ReduceEndTime(ref _petRepairPodCooldownEndTime);
         }
 
         public override void Tick()
@@ -165,6 +186,8 @@ namespace Ow.Game.Objects
                 CheckShieldSacrifice();
                 CheckKamikaze();
                 CheckLocators();
+                CheckPetSupportModules();
+                UpdateConditionalGearAvailability();
                 if (!collecting && !IsAbilityNavigating())
                     Follow(Owner);
                 Movement.ActualPosition(this);
@@ -496,12 +519,12 @@ namespace Ow.Game.Objects
                     && ownerSelectedCharacter != Owner
                     && ownerSelectedCharacter.Spacemap == Owner.Spacemap;
 
-                if (previousTargetStillValid && Owner.SelectedCharacter == null)
+                if (previousTargetStillValid && Owner.SelectedCharacter != ownerSelectedCharacter)
                 {
                     Owner.SelectEntity(ownerSelectedCharacter.Id);
                 }
 
-                if (ownerWasAttacking && previousTargetStillValid && Owner.SelectedCharacter == ownerSelectedCharacter)
+                if (ownerWasAttacking && previousTargetStillValid)
                 {
                     Owner.EnableAttack(Owner.Settings.InGameSettings.selectedLaser);
                 }
@@ -580,6 +603,130 @@ namespace Ow.Game.Objects
                 ShieldSacrificeActive = false;
                 RemoveShieldSacrificeVisuals();
                 ResetShieldSacrificeState();
+            }
+        }
+
+        private bool CanUsePetSupportModules()
+        {
+            return Owner.LastCombatTime.AddSeconds(PET_SUPPORT_COMBAT_LOCK_SECONDS) < DateTime.Now;
+        }
+
+        private bool IsPetSupportGear(short gearId)
+        {
+            return gearId == PetGearTypeModule.COMBO_SHIP_REPAIR
+                   || gearId == PetGearTypeModule.COMBO_GUARD
+                   || gearId == PetGearTypeModule.RESOURCE_SYSTEM_LOCATOR;
+        }
+
+        private bool IsPetSupportGearOnCooldown(short gearId)
+        {
+            switch (gearId)
+            {
+                case PetGearTypeModule.COMBO_SHIP_REPAIR:
+                    return _petHpRepairCooldownEndTime > DateTime.Now;
+                case PetGearTypeModule.COMBO_GUARD:
+                    return _petShieldRepairCooldownEndTime > DateTime.Now;
+                case PetGearTypeModule.RESOURCE_SYSTEM_LOCATOR:
+                    return _petRepairPodCooldownEndTime > DateTime.Now;
+                default:
+                    return false;
+            }
+        }
+
+        private bool IsGearEnabled(short gearId)
+        {
+            if (gearId == PetGearTypeModule.KAMIKAZE)
+                return !IsKamikazeOnCooldown();
+
+            if (IsPetSupportGear(gearId))
+                return CanUsePetSupportModules() && !IsPetSupportGearOnCooldown(gearId);
+
+            return true;
+        }
+
+        private void CheckPetSupportModules()
+        {
+            if (PetHpRepairActive)
+            {
+                if (_petHpRepairEndTime <= DateTime.Now)
+                {
+                    PetHpRepairActive = false;
+                    _petHpRepairCooldownEndTime = DateTime.Now.AddSeconds(PET_HP_REPAIR_COOLDOWN_SECONDS);
+                }
+                else if (_lastPetHpRepairTick.AddSeconds(1) <= DateTime.Now)
+                {
+                    Owner.Heal(20000);
+                    _lastPetHpRepairTick = DateTime.Now;
+                }
+            }
+
+            if (PetShieldRepairActive)
+            {
+                if (_petShieldRepairEndTime <= DateTime.Now)
+                {
+                    PetShieldRepairActive = false;
+                    _petShieldRepairCooldownEndTime = DateTime.Now.AddSeconds(PET_SHIELD_REPAIR_COOLDOWN_SECONDS);
+                }
+                else if (_lastPetShieldRepairTick.AddSeconds(1) <= DateTime.Now)
+                {
+                    Owner.Heal(15000, 0, HealType.SHIELD);
+                    _lastPetShieldRepairTick = DateTime.Now;
+                }
+            }
+
+            if (PetRepairPodActive)
+            {
+                if (_petRepairPodEndTime <= DateTime.Now)
+                {
+                    PetRepairPodActive = false;
+                    _petRepairPodCooldownEndTime = DateTime.Now.AddSeconds(PET_REPAIR_POD_COOLDOWN_SECONDS);
+                    RemovePetRepairPod();
+                }
+                else if (_lastPetRepairPodTick.AddSeconds(1) <= DateTime.Now)
+                {
+                    ExecutePetRepairPodHeal();
+                    _lastPetRepairPodTick = DateTime.Now;
+                }
+            }
+        }
+
+        private void ExecutePetRepairPodHeal()
+        {
+            if (_petRepairPod == null) return;
+
+            foreach (var character in _petRepairPod.Spacemap.Characters.Values.OfType<Player>())
+            {
+                short relationType = Owner.Clan.Id != 0 && character.Clan.Id != 0 ? Owner.Clan.GetRelation(character.Clan) : (short)0;
+                var friendly = character == Owner
+                               || (Owner.Group != null && Owner.Group.Members.ContainsKey(character.Id))
+                               || relationType == ClanRelationModule.ALLIED;
+
+                if (friendly && character.Position.DistanceTo(_petRepairPod.Position) < 350)
+                    character.Heal(20000, Owner.Id);
+            }
+        }
+
+        private void RemovePetRepairPod()
+        {
+            if (_petRepairPod == null) return;
+
+            _petRepairPod.Remove();
+            _petRepairPod = null;
+        }
+
+        private void UpdateConditionalGearAvailability()
+        {
+            foreach (var ability in _abilities.Values.Where(ability => !IsGearDisabled(ability.GearType)))
+            {
+                var enabled = IsGearEnabled(ability.GearType);
+                if (enabled == _enabledGearCache.Contains(ability.GearType)) continue;
+
+                if (enabled)
+                    _enabledGearCache.Add(ability.GearType);
+                else
+                    _enabledGearCache.Remove(ability.GearType);
+
+                Owner.SendCommand(PetGearAddCommand.write(new PetGearTypeModule(ability.GearType), 3, 1, enabled));
             }
         }
 
@@ -676,7 +823,12 @@ namespace Ow.Game.Objects
             foreach (var ability in _abilities.Values.Where(ability => !IsGearDisabled(ability.GearType)))
             {
                 // Ensure the client treats every gear as owned/available by reporting at least one copy.
-                var enabled = ability.GearType != PetGearTypeModule.KAMIKAZE || !IsKamikazeOnCooldown();
+                var enabled = IsGearEnabled(ability.GearType);
+                if (enabled)
+                    _enabledGearCache.Add(ability.GearType);
+                else
+                    _enabledGearCache.Remove(ability.GearType);
+
                 Owner.SendCommand(PetGearAddCommand.write(new PetGearTypeModule(ability.GearType), 3, 1, enabled));
 
                 if (ability.GearType == PetGearTypeModule.KAMIKAZE)
@@ -708,6 +860,20 @@ namespace Ow.Game.Objects
             if (IsGearDisabled(gearId))
             {
                 GearId = PetGearTypeModule.PASSIVE;
+                Owner.SendCommand(PetGearSelectCommand.write(new PetGearTypeModule(GearId), new List<int>()));
+                return;
+            }
+
+            if (IsPetSupportGear(gearId) && !CanUsePetSupportModules())
+            {
+                Owner.SendPacket("0|A|STD|A P.E.T. támogató modul csak akkor használható, ha a játékos nem kap sebzést.");
+                Owner.SendCommand(PetGearSelectCommand.write(new PetGearTypeModule(GearId), new List<int>()));
+                return;
+            }
+
+            if (IsPetSupportGear(gearId) && IsPetSupportGearOnCooldown(gearId))
+            {
+                Owner.SendPacket("0|A|STD|A P.E.T. támogató modul újratöltés alatt áll.");
                 Owner.SendCommand(PetGearSelectCommand.write(new PetGearTypeModule(GearId), new List<int>()));
                 return;
             }
@@ -753,31 +919,28 @@ namespace Ow.Game.Objects
                     KamikazeActive = true;
                     break;
                 case PetGearTypeModule.COMBO_SHIP_REPAIR:
-                    ComboShipRepairActive = true;
-                    _comboShipRepairEndTime = DateTime.Now.AddSeconds(5);
-                    _lastComboShipRepairTick = DateTime.MinValue;
-                    Owner.SendPacket("0|A|STM|msg_pet_combo_ship_repair_activated");
+                    PetHpRepairActive = true;
+                    _petHpRepairEndTime = DateTime.Now.AddSeconds(PET_HP_REPAIR_DURATION_SECONDS);
+                    _lastPetHpRepairTick = DateTime.MinValue;
+                    Owner.SendPacket("0|A|STM|msg_pet_hp_repair_activated");
                     break;
                 case PetGearTypeModule.COMBO_GUARD:
-                    ComboGuardActive = true;
-                    if (!_shieldSacrificeTriggered)
-                    {
-                        var shieldBoost = Maths.GetPercentage(Owner.MaxShieldPoints, 20);
-                        Owner.CurrentShieldPoints = Math.Min(Owner.MaxShieldPoints, Owner.CurrentShieldPoints + shieldBoost);
-                        Owner.UpdateStatus();
-                        _shieldSacrificeTriggered = true;
-                    }
+                    PetShieldRepairActive = true;
+                    _petShieldRepairEndTime = DateTime.Now.AddSeconds(PET_SHIELD_REPAIR_DURATION_SECONDS);
+                    _lastPetShieldRepairTick = DateTime.MinValue;
+                    Owner.SendPacket("0|A|STM|msg_pet_shield_repair_activated");
                     break;
-                case PetGearTypeModule.SHIELD_SACRIFICE:
-                    ShieldSacrificeActive = true;
-                    AddShieldSacrificeVisuals();
+                case PetGearTypeModule.RESOURCE_SYSTEM_LOCATOR:
+                    PetRepairPodActive = true;
+                    _petRepairPodEndTime = DateTime.Now.AddSeconds(PET_REPAIR_POD_DURATION_SECONDS);
+                    _lastPetRepairPodTick = DateTime.MinValue;
+                    RemovePetRepairPod();
+                    _petRepairPod = new Asset(Owner.Spacemap, Owner.Position, AssetTypeModule.HEALING_POD);
+                    Owner.SendPacket("0|A|STM|msg_pet_repair_pod_activated");
                     break;
                 case PetGearTypeModule.TRADE_MODULE:
                     TradePodActive = true;
                     HandleTradeModule();
-                    break;
-                case PetGearTypeModule.RESOURCE_SYSTEM_LOCATOR:
-                    ResourceSystemLocatorActive = true;
                     break;
                 case PetGearTypeModule.HP_LINK:
                     if (_hpLinkCooldownEndTime <= DateTime.Now)
@@ -812,6 +975,10 @@ namespace Ow.Game.Objects
             ShieldSacrificeActive = false;
             ResourceSystemLocatorActive = false;
             HpLinkActive = false;
+            PetHpRepairActive = false;
+            PetShieldRepairActive = false;
+            PetRepairPodActive = false;
+            RemovePetRepairPod();
             _shieldSacrificeTriggered = false;
             ResetKamikazeState();
             ResetShieldSacrificeState();
@@ -842,6 +1009,10 @@ namespace Ow.Game.Objects
             if (_kamikazeGearEnabled == enabled) return;
 
             _kamikazeGearEnabled = enabled;
+            if (enabled)
+                _enabledGearCache.Add(PetGearTypeModule.KAMIKAZE);
+            else
+                _enabledGearCache.Remove(PetGearTypeModule.KAMIKAZE);
 
             Owner.SendCommand(PetGearAddCommand.write(
                 new PetGearTypeModule(PetGearTypeModule.KAMIKAZE),
@@ -904,10 +1075,10 @@ namespace Ow.Game.Objects
             RegisterAbility(PetGearTypeModule.TRADE_POD, "G-TRA3 — Trade Module III", "A rakomány azonnali eladása +30% bónusszal.");
             RegisterAbility(PetGearTypeModule.REPAIR_PET, "G-REP3 — PET Repair Module III", "15 másodpercig másodpercenként 12 000 HP-val javítja a P.E.T.-et.");
             RegisterAbility(PetGearTypeModule.KAMIKAZE, "G-KK3 — Kamikaze Module III", "Vészhelyzetben 75 000 sebzést okozó robbanást indít 450 egységes sugarú körben.");
-            RegisterAbility(PetGearTypeModule.COMBO_SHIP_REPAIR, "C-SR3 — Ship Repair Module III", "Aktiválás után 5 másodpercig másodpercenként 25 000 életerőt állít helyre a hajón.");
-            RegisterAbility(PetGearTypeModule.COMBO_GUARD, "C-MG3 — Modular Guard System III", "Azonnali pajzserősítést biztosító védelmi mód.");
+            RegisterAbility(PetGearTypeModule.COMBO_SHIP_REPAIR, "P.E.T. HP javítás", "Nem használt megjeleníthető ikon: sebzésen kívül aktiválva a hajó HP-ját tölti.");
+            RegisterAbility(PetGearTypeModule.COMBO_GUARD, "P.E.T. pajzs javítás", "Nem használt megjeleníthető ikon: sebzésen kívül aktiválva a hajó pajzsát tölti.");
             RegisterAbility(PetGearTypeModule.SHIELD_SACRIFICE, "G-SF1 — Shield Sacrifice Module I", "Pajzsenergiát továbbít szövetségesnek, majd a P.E.T. leáll.");
-            RegisterAbility(PetGearTypeModule.RESOURCE_SYSTEM_LOCATOR, "G-RL3 — Resource Locator Module III", "Rendszerszintű nyersanyag bemérés 5000 egységig.");
+            RegisterAbility(PetGearTypeModule.RESOURCE_SYSTEM_LOCATOR, "P.E.T. javító pod", "Nem használt megjeleníthető ikon: sebzésen kívül aktiválva javító podot helyez le.");
             RegisterAbility(PetGearTypeModule.HP_LINK, "G-HPL — HP Link P.E.T. Gear", "20 másodpercig az űrhajót érő életerő-sebzést a P.E.T.-re terheli át. Újratöltés: 240 másodperc.");
         }
 
