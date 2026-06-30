@@ -26,6 +26,8 @@ namespace Ow.Game.GalaxyGates
         private const int NpcSpawnCircleRadius = 150;
         private const int NpcCountMessageIntervalSeconds = 45;
         private const int RandomBoosterRewardHours = 5;
+        private const int FinalUridiumReward = 50000;
+        private const int CompletionExitDelaySeconds = 20;
         private const int EventPortalGraphicId = 1;
         private const int RestPortalGraphicId = 1;
         private const int ExitPortalGraphicId = 1;
@@ -34,6 +36,7 @@ namespace Ow.Game.GalaxyGates
         private static readonly Position RestPortalPosition = new Position(10100, 6400);
         private static readonly Position ExitPortalPosition = new Position(10700, 6400);
         private static readonly Position ExitTargetPosition = new Position(21000, 13000);
+        private static readonly Position ExitMapCenter = new Position(10400, 6400);
 
         public static bool Active { get; private set; }
         public static int EntryMapId { get; private set; }
@@ -512,17 +515,38 @@ namespace Ow.Game.GalaxyGates
 
                 if (CurrentWaveIndex >= Waves.Length)
                 {
-                    Completed = true;
-                    RewardPlayers();
-                    SendMessage("Hades kapu teljesítve!");
-                    Dispose();
-                    RemoveRun(this);
+                    CompleteRunAfterDelay();
                     return;
                 }
 
                 WaitingForNextStage = true;
                 SpawnRestPortals();
                 SendMessage("Pihenő: a bal oldali kapuval tovább lehet menni, a jobb oldali kapuval kiugrasz a 4-4 mapra.");
+            }
+
+            private async void CompleteRunAfterDelay()
+            {
+                if (Completed)
+                    return;
+
+                Completed = true;
+                RewardPlayers();
+                SendMessage($"Hades kapu teljesítve! {CompletionExitDelaySeconds} másodperc múlva kidob a 16-os map közepére.");
+                await Task.Delay(CompletionExitDelaySeconds * 1000);
+
+                var exitMap = GameManager.GetSpacemap(ExitMapId);
+                if (exitMap != null)
+                {
+                    foreach (var playerId in PlayerIds)
+                    {
+                        var player = GameManager.GetPlayerById(playerId);
+                        if (player != null && player.Spacemap == Spacemap)
+                            JumpPlayer(player, ExitMapCenter, exitMap);
+                    }
+                }
+
+                Dispose();
+                RemoveRun(this);
             }
 
             private void SpawnRestPortals()
@@ -584,9 +608,11 @@ namespace Ow.Game.GalaxyGates
                 foreach (var player in rewardPlayers)
                 {
                     player.ChangeData(DataType.HONOR, honorReward);
+                    player.ChangeData(DataType.URIDIUM, FinalUridiumReward);
                     AddBootyKeys(player);
-                    AddRandomBooster(player);
-                    player.SendPacket($"0|A|STD|Hades reward: {honorReward} becsület, minden booty kulcsból {RewardKeysPerType} db és {RandomBoosterRewardHours} óra random booster.");
+                    var boosterType = AddRandomBooster(player);
+                    var boosterName = GetBoosterRewardName(boosterType);
+                    player.SendPacket($"0|A|STD|Hades reward: {honorReward} becsület, {FinalUridiumReward} uridium, minden booty kulcsból {RewardKeysPerType} db és {RandomBoosterRewardHours} óra {boosterName} booster.");
                 }
             }
 
@@ -606,7 +632,7 @@ namespace Ow.Game.GalaxyGates
             }
 
 
-            private void AddRandomBooster(Player player)
+            private BoosterType AddRandomBooster(Player player)
             {
                 var boosterTypes = new[]
                 {
@@ -615,7 +641,42 @@ namespace Ow.Game.GalaxyGates
                     BoosterType.REP_B01, BoosterType.REP_B02, BoosterType.SHD_B01, BoosterType.SHD_B02
                 };
 
-                player.BoosterManager.Add(boosterTypes[Randoms.random.Next(boosterTypes.Length)], RandomBoosterRewardHours);
+                var boosterType = boosterTypes[Randoms.random.Next(boosterTypes.Length)];
+                player.BoosterManager.Add(boosterType, RandomBoosterRewardHours);
+                return boosterType;
+            }
+
+            private string GetBoosterRewardName(BoosterType boosterType)
+            {
+                switch (boosterType)
+                {
+                    case BoosterType.DMG_B01:
+                        return "sebzés B01";
+                    case BoosterType.DMG_B02:
+                        return "sebzés B02";
+                    case BoosterType.EP_B01:
+                        return "tapasztalat B01";
+                    case BoosterType.EP_B02:
+                        return "tapasztalat B02";
+                    case BoosterType.HON_B01:
+                        return "becsület B01";
+                    case BoosterType.HON_B02:
+                        return "becsület B02";
+                    case BoosterType.HP_B01:
+                        return "életerő B01";
+                    case BoosterType.HP_B02:
+                        return "életerő B02";
+                    case BoosterType.REP_B01:
+                        return "javítás B01";
+                    case BoosterType.REP_B02:
+                        return "javítás B02";
+                    case BoosterType.SHD_B01:
+                        return "pajzs B01";
+                    case BoosterType.SHD_B02:
+                        return "pajzs B02";
+                    default:
+                        return boosterType.ToString();
+                }
             }
 
             private void SendMessage(string message)
