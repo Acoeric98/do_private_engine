@@ -920,24 +920,15 @@ namespace Ow.Game.Objects
                     KamikazeActive = true;
                     break;
                 case PetGearTypeModule.COMBO_SHIP_REPAIR:
-                    PetHpRepairActive = true;
-                    _petHpRepairEndTime = DateTime.Now.AddSeconds(PET_HP_REPAIR_DURATION_SECONDS);
-                    _lastPetHpRepairTick = DateTime.MinValue;
+                    ComboShipRepairActive = true;
+                    _comboShipRepairEndTime = DateTime.Now.AddSeconds(15);
+                    _lastComboShipRepairTick = DateTime.MinValue;
                     Owner.SendPacket("0|A|STM|msg_pet_hp_repair_activated");
                     break;
                 case PetGearTypeModule.COMBO_GUARD:
-                    PetShieldRepairActive = true;
-                    _petShieldRepairEndTime = DateTime.Now.AddSeconds(PET_SHIELD_REPAIR_DURATION_SECONDS);
-                    _lastPetShieldRepairTick = DateTime.MinValue;
-                    Owner.SendPacket("0|A|STM|msg_pet_shield_repair_activated");
-                    break;
-                case PetGearTypeModule.RESOURCE_SYSTEM_LOCATOR:
-                    PetRepairPodActive = true;
-                    _petRepairPodEndTime = DateTime.Now.AddSeconds(PET_REPAIR_POD_DURATION_SECONDS);
-                    _lastPetRepairPodTick = DateTime.MinValue;
-                    RemovePetRepairPod();
-                    _petRepairPod = new Asset(Owner.Spacemap, Owner.Position, AssetTypeModule.HEALING_POD);
-                    Owner.SendPacket("0|A|STM|msg_pet_repair_pod_activated");
+                    ComboGuardActive = true;
+                    GuardModeActive = true;
+                    Owner.SendPacket("0|A|STM|msg_pet_combo_guard_activated");
                     break;
                 case PetGearTypeModule.TRADE_MODULE:
                     TradePodActive = true;
@@ -1102,7 +1093,7 @@ namespace Ow.Game.Objects
             RegisterAbility(PetGearTypeModule.COMBO_SHIP_REPAIR, "P.E.T. HP javítás", "Nem használt megjeleníthető ikon: sebzésen kívül aktiválva a hajó HP-ját tölti.");
             RegisterAbility(PetGearTypeModule.COMBO_GUARD, "P.E.T. pajzs javítás", "Nem használt megjeleníthető ikon: sebzésen kívül aktiválva a hajó pajzsát tölti.");
             RegisterAbility(PetGearTypeModule.SHIELD_SACRIFICE, "G-SF1 — Shield Sacrifice Module I", "Pajzsenergiát továbbít szövetségesnek, majd a P.E.T. leáll.");
-            RegisterAbility(PetGearTypeModule.RESOURCE_SYSTEM_LOCATOR, "P.E.T. javító pod", "Nem használt megjeleníthető ikon: sebzésen kívül aktiválva javító podot helyez le.");
+            RegisterAbility(PetGearTypeModule.RESOURCE_SYSTEM_LOCATOR, "G-SL3 — Resource System Locator Module III", "Megmutatja a rendszerben található nyersanyagokat nagyobb hatótávval.");
             RegisterAbility(PetGearTypeModule.HP_LINK, "G-HPL — HP Link P.E.T. Gear", "20 másodpercig az űrhajót érő életerő-sebzést a P.E.T.-re terheli át. Újratöltés: 240 másodperc.");
             RegisterAbility(PetGearTypeModule.AEGIS_HP_REPAIR, "Aegis HP javítás", "Aegis ikonú P.E.T. modul: csak sebzésen kívül aktiválható, és a hajó HP-ját javítja.");
             RegisterAbility(PetGearTypeModule.AEGIS_SHIELD_REPAIR, "Aegis pajzs javítás", "Aegis ikonú P.E.T. modul: csak sebzésen kívül aktiválható, és a hajó pajzsát javítja.");
