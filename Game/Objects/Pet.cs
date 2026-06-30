@@ -31,8 +31,8 @@ namespace Ow.Game.Objects
             PetGearTypeModule.RESOURCE_LOCATOR,
             PetGearTypeModule.SHIELD_SACRIFICE,
             PetGearTypeModule.TRADE_POD,
-            PetGearTypeModule.TRADE_MODULE,
-            PetGearTypeModule.HP_LINK
+            PetGearTypeModule.HP_LINK,
+            PetGearTypeModule.AEGIS_REPAIR_POD
         };
 
         public Player Owner { get; set; }
@@ -635,7 +635,7 @@ namespace Ow.Game.Objects
 
         private bool IsPetAegisRepairPodGear(short gearId)
         {
-            return gearId == PetGearTypeModule.TRADE_POD
+            return gearId == PetGearTypeModule.TRADE_MODULE
                    || gearId == PetGearTypeModule.AEGIS_REPAIR_POD;
         }
 
@@ -654,7 +654,7 @@ namespace Ow.Game.Objects
                     return _aegisHpRepairCooldownEndTime > DateTime.Now;
                 case PetGearTypeModule.AEGIS_SHIELD_REPAIR:
                     return _aegisShieldRepairCooldownEndTime > DateTime.Now;
-                case PetGearTypeModule.TRADE_POD:
+                case PetGearTypeModule.TRADE_MODULE:
                 case PetGearTypeModule.AEGIS_REPAIR_POD:
                     return _aegisRepairPodCooldownEndTime > DateTime.Now;
                 default:
@@ -743,11 +743,14 @@ namespace Ow.Game.Objects
         {
             RemoveAegisRepairPod();
             _aegisRepairPod = new Asset(Owner.Spacemap, Owner.Position, AssetTypeModule.HEALING_POD);
+            Owner.AddVisualModifier(VisualModifierCommand.HEALING_POD, 0, "", 0, true);
             GameManager.SendCommandToMap(Owner.Spacemap.Id, _aegisRepairPod.GetAssetCreateCommand());
         }
 
         private void RemoveAegisRepairPod()
         {
+            Owner.RemoveVisualModifier(VisualModifierCommand.HEALING_POD);
+
             if (_aegisRepairPod == null) return;
 
             _aegisRepairPod.Remove();
@@ -768,11 +771,6 @@ namespace Ow.Game.Objects
 
                 Owner.SendCommand(PetGearAddCommand.write(new PetGearTypeModule(ability.GearType), 3, 1, enabled));
             }
-        }
-
-        private void HandleTradeModule()
-        {
-            Owner.SendPacket("0|A|STD|trade_module:activated");
         }
 
         public void Activate()
@@ -947,8 +945,9 @@ namespace Ow.Game.Objects
                 case PetGearTypeModule.RESOURCE_LOCATOR:
                     ResourceLocatorActive = true;
                     break;
-                case PetGearTypeModule.TRADE_POD:
+                case PetGearTypeModule.TRADE_MODULE:
                 case PetGearTypeModule.AEGIS_REPAIR_POD:
+                    TradePodActive = true;
                     AegisRepairPodActive = true;
                     _aegisRepairPodEndTime = DateTime.Now.AddSeconds(PET_AEGIS_POD_DURATION_SECONDS);
                     _lastAegisRepairPodTick = DateTime.MinValue;
@@ -973,10 +972,6 @@ namespace Ow.Game.Objects
                     ComboGuardActive = true;
                     GuardModeActive = true;
                     Owner.SendPacket("0|A|STM|msg_pet_combo_guard_activated");
-                    break;
-                case PetGearTypeModule.TRADE_MODULE:
-                    TradePodActive = true;
-                    HandleTradeModule();
                     break;
                 case PetGearTypeModule.RESOURCE_SYSTEM_LOCATOR:
                     ResourceSystemLocatorActive = true;
@@ -1127,7 +1122,7 @@ namespace Ow.Game.Objects
             RegisterAbility(PetGearTypeModule.AUTO_RESOURCE_COLLECTION, "G-AR3 — Resource Collector Module III", "Automatikus nyersanyaggyűjtés 3000 egységen belül.");
             RegisterAbility(PetGearTypeModule.ENEMY_LOCATOR, "G-EL3 — Enemy Locator Module III", "Felderíti a rendszerben tartózkodó NPC-ket és kijelzi számukat.");
             RegisterAbility(PetGearTypeModule.RESOURCE_LOCATOR, "G-RL3 — Resource Locator Module III", "Megmutatja a környéken található nyersanyagokat.");
-            RegisterAbility(PetGearTypeModule.TRADE_POD, "Aegis javító pod", "Megjelenítéshez a Trade Pod P.E.T. gear ID-jét használja, de az Aegis javító pod mechanikáját futtatja.");
+            RegisterAbility(PetGearTypeModule.TRADE_MODULE, "Aegis javító pod", "Megjelenítéshez a Trade Module P.E.T. gear ID-jét használja, de az Aegis javító pod mechanikáját futtatja.");
             RegisterAbility(PetGearTypeModule.REPAIR_PET, "G-REP3 — PET Repair Module III", "15 másodpercig másodpercenként 12 000 HP-val javítja a P.E.T.-et.");
             RegisterAbility(PetGearTypeModule.KAMIKAZE, "G-KK3 — Kamikaze Module III", "Vészhelyzetben 75 000 sebzést okozó robbanást indít 450 egységes sugarú körben.");
             RegisterAbility(PetGearTypeModule.COMBO_SHIP_REPAIR, "P.E.T. HP javítás", "Nem használt megjeleníthető ikon: sebzésen kívül aktiválva a hajó HP-ját tölti.");
