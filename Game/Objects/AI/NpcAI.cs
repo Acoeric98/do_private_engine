@@ -28,13 +28,25 @@ namespace Ow.Game.Objects.AI
                 switch (AIOption)
                 {
                     case NpcAIOption.SEARCH_FOR_ENEMIES:
-                        foreach (var players in Npc.InRangeCharacters.Values.OrderBy(_ => AttackRandomPlayersAggressively ? Randoms.random.Next() : 0))
+                        if (AttackRandomPlayersAggressively)
+                        {
+                            var target = GetRandomAttackablePlayerOnMap();
+                            if (target != null)
+                            {
+                                Npc.Selected = target;
+                                Npc.Attacking = true;
+                                AIOption = NpcAIOption.FLY_TO_ENEMY;
+                                break;
+                            }
+                        }
+
+                        foreach (var players in Npc.InRangeCharacters.Values)
                         {
                             if (players is Player)
                             {
                                 var player = players as Player;
 
-                                if (!AttackRandomPlayersAggressively && Npc.Ship.Aggressive && Npc.Position.DistanceTo(player.Position) > AGGRESSIVE_BUMP_RANGE)
+                                if (Npc.Ship.Aggressive && Npc.Position.DistanceTo(player.Position) > AGGRESSIVE_BUMP_RANGE)
                                     continue;
 
                                 var inDefenseZone = Npc.Spacemap?.IsInNpcDefenseZone(player.Position) == true;
@@ -47,7 +59,7 @@ namespace Ow.Game.Objects.AI
                                 }
                                 else
                                 {
-                                    if (Npc.Ship.Aggressive || AttackRandomPlayersAggressively)
+                                    if (Npc.Ship.Aggressive)
                                         Npc.Attacking = true;
 
                                     Npc.Selected = player;
@@ -65,10 +77,11 @@ namespace Ow.Game.Objects.AI
                         }
                         break;
                     case NpcAIOption.FLY_TO_ENEMY:
-                        if (Npc.Selected != null && Npc.Selected is Player && !(Npc.Selected as Player).Storage.IsInDemilitarizedZone && Npc.Spacemap?.IsInNpcDefenseZone((Npc.Selected as Player).Position) != true && Npc.Position.DistanceTo((Npc.Selected as Player).Position) < Npc.RenderRange)
+                        if (IsValidTarget(Npc.Selected as Player))
                         {
                             var player = Npc.Selected as Player;
 
+                            Npc.Attacking = Npc.Ship.Aggressive || AttackRandomPlayersAggressively;
                             Movement.Move(Npc, Position.GetPosOnCircle(player.Position, ALIEN_DISTANCE_TO_USER));
                             AIOption = NpcAIOption.WAIT_PLAYER_MOVE;
                         } 
@@ -80,11 +93,13 @@ namespace Ow.Game.Objects.AI
                         }
                         break;
                     case NpcAIOption.WAIT_PLAYER_MOVE:
-                        if (Npc.Selected != null && Npc.Selected is Player && !(Npc.Selected as Player).Storage.IsInDemilitarizedZone && Npc.Spacemap?.IsInNpcDefenseZone((Npc.Selected as Player).Position) != true)
+                        if (IsValidTarget(Npc.Selected as Player))
                         {
                             var player = Npc.Selected as Player;
 
-                            if (player.Moving)
+                            if (AttackRandomPlayersAggressively && !Npc.Moving)
+                                AIOption = NpcAIOption.FLY_TO_ENEMY;
+                            else if (player.Moving)
                                 AIOption = NpcAIOption.FLY_TO_ENEMY;
                         }
                         else
@@ -98,6 +113,31 @@ namespace Ow.Game.Objects.AI
 
                 lastMovement = DateTime.Now;
             }
+        }
+
+        private Player GetRandomAttackablePlayerOnMap()
+        {
+            var players = Npc.Spacemap?.Characters.Values
+                .OfType<Player>()
+                .Where(IsValidTarget)
+                .OrderBy(_ => Randoms.random.Next())
+                .ToList();
+
+            return players != null && players.Count > 0 ? players[0] : null;
+        }
+
+        private bool IsValidTarget(Player player)
+        {
+            if (player == null || player.Destroyed || player.Spacemap != Npc.Spacemap)
+                return false;
+
+            if (player.Storage.IsInDemilitarizedZone || player.Invisible)
+                return false;
+
+            if (Npc.Spacemap?.IsInNpcDefenseZone(player.Position) == true)
+                return false;
+
+            return AttackRandomPlayersAggressively || Npc.Position.DistanceTo(player.Position) < Npc.RenderRange;
         }
 
         private double DegreeToRadian(double angle)
