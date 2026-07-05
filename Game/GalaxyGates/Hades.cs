@@ -363,9 +363,18 @@ namespace Ow.Game.GalaxyGates
                 var oldPosition = new Position(player.Position.X, player.Position.Y);
                 var wasInside = player.Spacemap == hadesMap;
 
-                SendMessage($"{player.Name} kilépett vagy ki lett dobva a csoportból, ezért a Hades kapu resetelődik.");
-                Dispose();
-                RemoveRun(this);
+                PlayerIds.Remove(player.Id);
+                player.SendPacket("0|A|STD|Kiléptél vagy ki lettél dobva a csoportból, ezért kikerülsz a Hades kapuból.");
+
+                if (PlayerIds.Count == 0)
+                {
+                    Dispose();
+                    RemoveRun(this);
+                }
+                else
+                {
+                    SendMessage($"{player.Name} kilépett vagy ki lett dobva a csoportból, de a Hades kapu tovább fut a bent maradt játékosoknak.");
+                }
 
                 if (!wasInside)
                     return;
