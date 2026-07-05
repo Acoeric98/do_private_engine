@@ -33,8 +33,8 @@ namespace Ow.Game.GalaxyGates
         private const int ExitPortalGraphicId = 1;
 
         private static readonly Position HadesCenter = new Position(10400, 6400);
-        private static readonly Position RestPortalPosition = new Position(10700, 6400);
-        private static readonly Position ExitPortalPosition = HadesCenter;
+        private static readonly Position RestPortalPosition = new Position(10100, 6400);
+        private static readonly Position ExitPortalPosition = new Position(10700, 6400);
         private static readonly Position ExitTargetPosition = new Position(21000, 13000);
         private static readonly Position ExitMapCenter = new Position(21200, 13300);
 
@@ -228,7 +228,7 @@ namespace Ow.Game.GalaxyGates
             private readonly List<int> PlayerIds;
             private readonly List<int> NpcIds = new List<int>();
             private readonly List<int> PortalIds = new List<int>();
-            private Portal RestPortal;
+            private Portal ContinuePortal;
             private Portal ExitPortal;
             private bool WaveTwoSpawned;
             private bool BossSpawned;
@@ -309,8 +309,8 @@ namespace Ow.Game.GalaxyGates
                 if (initiatingPlayer != null && PlayerIds.Contains(initiatingPlayer.Id))
                     JumpPlayer(initiatingPlayer, HadesCenter, Spacemap);
 
-                SpawnRestPortals();
-                SendMessage("Középen van egy visszaugró kapu a 4-4 mapra. A Wave 1 csak akkor indul, ha minden csoporttag saját maga beugrott.");
+                SpawnExitPortalOnly();
+                SendMessage("A jobb oldali kapuval a Wave 1 indulásáig vissza tudsz ugrani a 4-4 mapra. A Wave 1 csak akkor indul, ha minden csoporttag saját maga beugrott.");
 
                 await WaitUntilAllPlayersInside();
 
@@ -334,7 +334,7 @@ namespace Ow.Game.GalaxyGates
                 Disposed = true;
 
                 Spacemap.CharacterRemoved -= OnCharacterRemoved;
-                RemoveRestPortals();
+                RemoveRunPortals();
 
                 foreach (var npcId in NpcIds.ToList())
                 {
@@ -406,7 +406,7 @@ namespace Ow.Game.GalaxyGates
                 if (player == null || portal == null || !PlayerIds.Contains(player.Id))
                     return;
 
-                if (RestPortal != null && portal.Id == RestPortal.Id)
+                if (ContinuePortal != null && portal.Id == ContinuePortal.Id)
                 {
                     JumpPlayer(player, HadesCenter, Spacemap);
                     if (WaitingForNextStage)
@@ -464,7 +464,7 @@ namespace Ow.Game.GalaxyGates
 
                 if (!Disposed && !Completed && WaitingForNextStage && AreAllPlayersInside())
                 {
-                    RemoveRestPortals();
+                    RemoveRunPortals();
                     WaitingForNextStage = false;
                     SendMessage("Hades pihenő vége, a következő wave indul.");
                     SpawnWaveOne();
@@ -528,11 +528,12 @@ namespace Ow.Game.GalaxyGates
 
             private void SpawnWaveOne()
             {
+                RemoveRunPortals();
                 WaveTwoSpawned = false;
                 BossSpawned = false;
                 WaitingForNextStage = false;
                 var wave = Waves[CurrentWaveIndex];
-                var amount = 50;
+                var amount = 5; // Tesztelési fázis: eredeti érték 50.
                 SpawnNpcGroupOnCircle(new List<HadesNpcSpawn> { new HadesNpcSpawn(wave.WaveOneShipId, amount) });
                 SendMessage($"Wave 1 következik: {GetShipName(wave.WaveOneShipId)} - {amount} db.");
             }
@@ -541,8 +542,8 @@ namespace Ow.Game.GalaxyGates
             {
                 WaveTwoSpawned = true;
                 var wave = Waves[CurrentWaveIndex];
-                var bossAmount = 20;
-                var uberAmount = 10;
+                var bossAmount = 3; // Tesztelési fázis: eredeti érték 20.
+                var uberAmount = 2; // Tesztelési fázis: eredeti érték 10.
                 SpawnNpcGroupOnCircle(new List<HadesNpcSpawn>
                 {
                     new HadesNpcSpawn(wave.BossShipId, bossAmount),
@@ -653,8 +654,8 @@ namespace Ow.Game.GalaxyGates
                 }
 
                 WaitingForNextStage = true;
-                SpawnRestPortals();
-                SendMessage("Pihenő: a bal/középső kapuval egyenként vissza lehet menni a Hades közepére, a jobb oldali kapuval kiugrasz a 4-4 mapra. A következő wave csak akkor indul, ha mindenki bent van.");
+                SpawnStageChoicePortals();
+                SendMessage("Pihenő: a bal oldali kapu visz tovább a következő Hades szakaszra, a jobb oldali kapu visszavisz a 4-4 mapra. NPC wave-ek közben nincs kapu.");
             }
 
             private async void CompleteRunAfterDelay()
@@ -682,31 +683,45 @@ namespace Ow.Game.GalaxyGates
                 RemoveRun(this);
             }
 
-            private void SpawnRestPortals()
+            private void SpawnExitPortalOnly()
             {
-                RemoveRestPortals();
-
-                RestPortal = new Portal(Spacemap, RestPortalPosition, HadesCenter, HadesMapId, RestPortalGraphicId, 0, true, true);
+                RemoveRunPortals();
                 ExitPortal = new Portal(Spacemap, ExitPortalPosition, ExitTargetPosition, ExitMapId, ExitPortalGraphicId, 0, true, true);
-                PortalIds.Add(RestPortal.Id);
                 PortalIds.Add(ExitPortal.Id);
+                SendPortalCreate(ExitPortal);
+            }
+
+            private void SpawnStageChoicePortals()
+            {
+                RemoveRunPortals();
+
+                ContinuePortal = new Portal(Spacemap, RestPortalPosition, HadesCenter, HadesMapId, RestPortalGraphicId, 0, true, true);
+                ExitPortal = new Portal(Spacemap, ExitPortalPosition, ExitTargetPosition, ExitMapId, ExitPortalGraphicId, 0, true, true);
+                PortalIds.Add(ContinuePortal.Id);
+                PortalIds.Add(ExitPortal.Id);
+
+                SendPortalCreate(ContinuePortal);
+                SendPortalCreate(ExitPortal);
+            }
+
+            private void SendPortalCreate(Portal portal)
+            {
+                if (portal == null)
+                    return;
 
                 foreach (var playerId in PlayerIds)
                 {
                     var player = GameManager.GetPlayerById(playerId);
                     if (player?.Spacemap == Spacemap)
-                    {
-                        player.SendCommand(RestPortal.GetAssetCreateCommand());
-                        player.SendCommand(ExitPortal.GetAssetCreateCommand());
-                    }
+                        player.SendCommand(portal.GetAssetCreateCommand());
                 }
             }
 
-            private void RemoveRestPortals()
+            private void RemoveRunPortals()
             {
-                RemoveRunPortal(RestPortal);
+                RemoveRunPortal(ContinuePortal);
                 RemoveRunPortal(ExitPortal);
-                RestPortal = null;
+                ContinuePortal = null;
                 ExitPortal = null;
             }
 
