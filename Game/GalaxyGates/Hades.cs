@@ -224,7 +224,9 @@ namespace Ow.Game.GalaxyGates
         private class HadesRun
         {
             private readonly int GroupId;
-            private readonly Spacemap Spacemap;
+            private Spacemap Spacemap;
+            private Spacemap PendingNextStageMap;
+            private readonly List<Spacemap> StageSpacemaps = new List<Spacemap>();
             private readonly List<int> PlayerIds;
             private readonly List<int> NpcIds = new List<int>();
             private readonly List<int> PortalIds = new List<int>();
@@ -251,8 +253,7 @@ namespace Ow.Game.GalaxyGates
             {
                 GroupId = groupId;
                 PlayerIds = players.Select(player => player.Id).ToList();
-                Spacemap = new Spacemap(HadesMapId, $"Hades-{groupId}-{DateTime.Now.Ticks}", 0, null, null, null, new OptionsBase { RangeDisabled = true, DeathLocationRepair = true, LogoutBlocked = true });
-                Spacemap.GroupId = groupId;
+                Spacemap = CreateStageSpacemap();
             }
 
             public bool ContainsAnyPlayer(List<Player> players)
@@ -303,8 +304,6 @@ namespace Ow.Game.GalaxyGates
 
             public async void Start(int initiatingPlayerId)
             {
-                Spacemap.CharacterRemoved += OnCharacterRemoved;
-
                 var initiatingPlayer = GameManager.GetPlayerById(initiatingPlayerId);
                 if (initiatingPlayer != null && PlayerIds.Contains(initiatingPlayer.Id))
                     JumpPlayer(initiatingPlayer, HadesCenter, Spacemap);
@@ -333,7 +332,9 @@ namespace Ow.Game.GalaxyGates
                 if (Disposed) return;
                 Disposed = true;
 
-                Spacemap.CharacterRemoved -= OnCharacterRemoved;
+                foreach (var stageSpacemap in StageSpacemaps.ToList())
+                    stageSpacemap.CharacterRemoved -= OnCharacterRemoved;
+
                 RemoveRunPortals();
 
                 foreach (var npcId in NpcIds.ToList())
@@ -345,7 +346,11 @@ namespace Ow.Game.GalaxyGates
 
                 NpcIds.Clear();
                 PortalIds.Clear();
-                global::Ow.Program.TickManager.RemoveTick(Spacemap);
+                foreach (var stageSpacemap in StageSpacemaps.ToList())
+                    global::Ow.Program.TickManager.RemoveTick(stageSpacemap);
+
+                StageSpacemaps.Clear();
+                PendingNextStageMap = null;
             }
 
 
@@ -408,7 +413,7 @@ namespace Ow.Game.GalaxyGates
 
                 if (ContinuePortal != null && portal.Id == ContinuePortal.Id)
                 {
-                    JumpPlayer(player, HadesCenter, Spacemap);
+                    JumpPlayer(player, HadesCenter, GetOrCreatePendingNextStageMap());
                     if (WaitingForNextStage)
                         StartNextStageWhenReady();
                     return;
@@ -430,7 +435,8 @@ namespace Ow.Game.GalaxyGates
 
             private bool AreAllPlayersInside()
             {
-                return PlayerIds.All(playerId => GameManager.GetPlayerById(playerId)?.Spacemap == Spacemap);
+                var requiredMap = WaitingForNextStage && PendingNextStageMap != null ? PendingNextStageMap : Spacemap;
+                return PlayerIds.All(playerId => GameManager.GetPlayerById(playerId)?.Spacemap == requiredMap);
             }
 
             private async void MonitorNpcCount()
@@ -465,8 +471,9 @@ namespace Ow.Game.GalaxyGates
                 if (!Disposed && !Completed && WaitingForNextStage && AreAllPlayersInside())
                 {
                     RemoveRunPortals();
+                    ActivatePendingNextStageMap();
                     WaitingForNextStage = false;
-                    SendMessage("Hades pihenő vége, a következő wave indul.");
+                    SendMessage("Hades pihenő vége, a következő wave külön session mapon indul.");
                     SpawnWaveOne();
                 }
 
@@ -606,6 +613,9 @@ namespace Ow.Game.GalaxyGates
 
                 if (e.Character is Player removedPlayer)
                 {
+                    if (WaitingForNextStage)
+                        return;
+
                     if (!PlayerIds.Any(playerId => GameManager.GetPlayerById(playerId)?.Spacemap == Spacemap))
                     {
                         if (PlayerIds.Count == 1 && removedPlayer.Destroyed)
@@ -654,6 +664,7 @@ namespace Ow.Game.GalaxyGates
                 }
 
                 WaitingForNextStage = true;
+                PendingNextStageMap = CreateStageSpacemap();
                 SpawnStageChoicePortals();
                 SendMessage("Pihenő: a bal oldali kapu visz tovább a következő Hades szakaszra, a jobb oldali kapu visszavisz a 4-4 mapra. NPC wave-ek közben nincs kapu.");
             }
@@ -681,6 +692,32 @@ namespace Ow.Game.GalaxyGates
 
                 Dispose();
                 RemoveRun(this);
+            }
+
+            private Spacemap CreateStageSpacemap()
+            {
+                var stageMap = new Spacemap(HadesMapId, $"Hades-{GroupId}-stage-{CurrentWaveIndex + 1}-{DateTime.Now.Ticks}", 0, null, null, null, new OptionsBase { RangeDisabled = true, DeathLocationRepair = true, LogoutBlocked = true });
+                stageMap.GroupId = GroupId;
+                stageMap.CharacterRemoved += OnCharacterRemoved;
+                StageSpacemaps.Add(stageMap);
+                return stageMap;
+            }
+
+            private Spacemap GetOrCreatePendingNextStageMap()
+            {
+                if (PendingNextStageMap == null)
+                    PendingNextStageMap = CreateStageSpacemap();
+
+                return PendingNextStageMap;
+            }
+
+            private void ActivatePendingNextStageMap()
+            {
+                if (PendingNextStageMap != null)
+                {
+                    Spacemap = PendingNextStageMap;
+                    PendingNextStageMap = null;
+                }
             }
 
             private void SpawnExitPortalOnly()
@@ -864,7 +901,7 @@ namespace Ow.Game.GalaxyGates
                 foreach (var playerId in PlayerIds)
                 {
                     var player = GameManager.GetPlayerById(playerId);
-                    if (player != null && player.Spacemap == Spacemap)
+                    if (player != null && StageSpacemaps.Contains(player.Spacemap))
                         player.SendPacket($"0|A|STD|{message}");
                 }
             }
