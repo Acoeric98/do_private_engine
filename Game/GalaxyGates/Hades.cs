@@ -1,4 +1,4 @@
-﻿using Ow.Game.Movements;
+using Ow.Game.Movements;
 using Ow.Game.Objects;
 using Ow.Game.Objects.Players.Managers;
 using Ow.Managers;
@@ -33,8 +33,8 @@ namespace Ow.Game.GalaxyGates
         private const int ExitPortalGraphicId = 1;
 
         private static readonly Position HadesCenter = new Position(10400, 6400);
-        private static readonly Position RestPortalPosition = new Position(10100, 6400);
-        private static readonly Position ExitPortalPosition = new Position(10700, 6400);
+        private static readonly Position RestPortalPosition = new Position(10700, 6400);
+        private static readonly Position ExitPortalPosition = new Position(10100, 6400);
         private static readonly Position ExitTargetPosition = new Position(21000, 13000);
         private static readonly Position ExitMapCenter = new Position(21200, 13300);
 
@@ -130,6 +130,16 @@ namespace Ow.Game.GalaxyGates
                 {
                     player.SendPacket("0|A|STD|Hades kapuhoz csoport kell.");
                     return false;
+                }
+
+                lock (SyncRoot)
+                {
+                    var groupRun = Runs.FirstOrDefault(activeRun => activeRun.GroupMatches(group.Id));
+                    if (groupRun != null)
+                    {
+                        groupRun.AddAndReturnPlayer(player);
+                        return true;
+                    }
                 }
 
                 if (group.Leader != player)
@@ -255,9 +265,31 @@ namespace Ow.Game.GalaxyGates
                 return players.Any(player => PlayerIds.Contains(player.Id));
             }
 
+            public bool GroupMatches(int groupId)
+            {
+                return GroupId == groupId;
+            }
+
             public bool ContainsPlayer(int playerId)
             {
                 return PlayerIds.Contains(playerId);
+            }
+
+            public void AddAndReturnPlayer(Player player)
+            {
+                if (player == null)
+                    return;
+
+                if (PlayerIds.Count >= MaximumPlayers && !PlayerIds.Contains(player.Id))
+                {
+                    player.SendPacket($"0|A|STD|Hades kapuba egyszerre maximum {MaximumPlayers} játékos mehet be.");
+                    return;
+                }
+
+                if (!PlayerIds.Contains(player.Id))
+                    PlayerIds.Add(player.Id);
+
+                ReturnPlayer(player);
             }
 
             public void ReturnPlayer(Player player)
