@@ -677,9 +677,11 @@ namespace Ow.Game.GalaxyGates
                 if (rewardPlayers.Count == 0)
                     return;
 
-                var honorReward = FinalHonorReward / PlayerIds.Count;
+                var baseHonorReward = FinalHonorReward / PlayerIds.Count;
                 foreach (var player in rewardPlayers)
                 {
+                    var honorReward = ApplyHonorRewardBoosts(player, baseHonorReward);
+
                     player.ChangeData(DataType.HONOR, honorReward);
                     player.ChangeData(DataType.URIDIUM, FinalUridiumReward);
                     AddBootyKeys(player);
@@ -687,6 +689,28 @@ namespace Ow.Game.GalaxyGates
                     var boosterName = GetBoosterRewardName(boosterType);
                     player.SendPacket($"0|A|STD|Hades reward: {honorReward} becsület, {FinalUridiumReward} uridium, minden booty kulcsból {RewardKeysPerType} db és {RandomBoosterRewardHours} óra {boosterName} booster.");
                 }
+            }
+
+            private int ApplyHonorRewardBoosts(Player player, int honor)
+            {
+                if (player == null)
+                    return honor;
+
+                var boostedHonor = honor;
+                boostedHonor = player.Ship?.GetHonorBoost(boostedHonor) ?? boostedHonor;
+                boostedHonor = player.GetHonorBoost(boostedHonor);
+                boostedHonor += Maths.GetPercentage(boostedHonor, player.BoosterManager.GetPercentage(BoostedAttributeType.HONOUR));
+                return boostedHonor;
+            }
+
+            private int ApplyExperienceRewardBoosts(Player player, int experience)
+            {
+                if (player == null)
+                    return experience;
+
+                var boostedExperience = player.Ship?.GetExperienceBoost(experience) ?? experience;
+                boostedExperience += Maths.GetPercentage(boostedExperience, player.BoosterManager.GetPercentage(BoostedAttributeType.EP));
+                return boostedExperience;
             }
 
             private void AddBootyKeys(Player player)
